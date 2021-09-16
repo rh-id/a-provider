@@ -1,4 +1,4 @@
-package m.co.rh.id.provider;
+package m.co.rh.id.aprovider;
 
 import android.content.Context;
 import android.os.Handler;

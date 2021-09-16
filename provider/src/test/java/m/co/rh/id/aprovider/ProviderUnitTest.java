@@ -1,4 +1,4 @@
-package m.co.rh.id.provider;
+package m.co.rh.id.aprovider;
 
 import android.content.Context;
 import android.os.Handler;
@@ -14,15 +14,15 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 
-import m.co.rh.id.provider.test.IServiceA;
-import m.co.rh.id.provider.test.IServiceA1;
-import m.co.rh.id.provider.test.IServiceB;
-import m.co.rh.id.provider.test.ModuleA;
-import m.co.rh.id.provider.test.MyPojo;
-import m.co.rh.id.provider.test.ServiceAChildImpl;
-import m.co.rh.id.provider.test.ServiceAImpl;
-import m.co.rh.id.provider.test.ServiceAParentImpl;
-import m.co.rh.id.provider.test.ServiceBImpl;
+import m.co.rh.id.aprovider.test.IServiceA;
+import m.co.rh.id.aprovider.test.IServiceA1;
+import m.co.rh.id.aprovider.test.IServiceB;
+import m.co.rh.id.aprovider.test.ModuleA;
+import m.co.rh.id.aprovider.test.MyPojo;
+import m.co.rh.id.aprovider.test.ServiceAChildImpl;
+import m.co.rh.id.aprovider.test.ServiceAImpl;
+import m.co.rh.id.aprovider.test.ServiceAParentImpl;
+import m.co.rh.id.aprovider.test.ServiceBImpl;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;

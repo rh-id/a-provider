@@ -1,4 +1,4 @@
-package m.co.rh.id.provider;
+package m.co.rh.id.aprovider;
 
 /**
  * Helper class to execute action on success and on error

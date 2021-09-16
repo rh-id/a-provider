@@ -1,4 +1,4 @@
-package m.co.rh.id.provider;
+package m.co.rh.id.aprovider;
 
 /**
  * Provider registry to register modules/components/services

@@ -1,4 +1,4 @@
-package m.co.rh.id.provider.test;
+package m.co.rh.id.aprovider.test;
 
 /**
  * Simple POJO for testing
