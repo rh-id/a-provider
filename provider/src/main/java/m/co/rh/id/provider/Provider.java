@@ -21,8 +21,8 @@ public interface Provider {
     <I> I get(Class<I> clazz);
 
     /**
-     * Same as {@link #get(Class)} it doesn't throw NullPointerException or any exception,
-     * just return null value if not found. It should swallow any exception and return null
+     * Same as {@link #get(Class)}, this method doesn't throw NullPointerException or any exception,
+     * just return null value if not found. This method should swallow any exception and return null
      *
      * @param clazz class to be retrieved
      * @param <I>   Object type to be returned
