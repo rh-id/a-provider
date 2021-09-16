@@ -18,12 +18,22 @@ import java.util.concurrent.TimeUnit;
 @SuppressWarnings({"rawtypes", "unchecked"})
 class DefaultProvider implements Provider, ProviderRegistry {
     private static final String TAG = "DefaultProvider";
+    private static ThreadPoolExecutor sThreadPoolExecutor;
+
+    private static synchronized void initThreadPool() {
+        if (sThreadPoolExecutor == null) {
+            sThreadPoolExecutor = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors(),
+                    Integer.MAX_VALUE,
+                    30, TimeUnit.SECONDS, new SynchronousQueue<>());
+            sThreadPoolExecutor.allowCoreThreadTimeOut(true);
+            sThreadPoolExecutor.prestartAllCoreThreads();
+        }
+    }
 
     private Context mContext;
     private Map<Class, Object> mObjectMap;
     private List<ProviderModule> mModuleList;
     private List<LazyFutureProviderRegister> mAsyncRegisterList;
-    private ThreadPoolExecutor mThreadPoolExecutor;
     private boolean mIsDisposed;
 
     DefaultProvider(Context context, ProviderModule rootModule) {
@@ -31,11 +41,7 @@ class DefaultProvider implements Provider, ProviderRegistry {
         mObjectMap = new ConcurrentHashMap<>();
         mModuleList = Collections.synchronizedList(new ArrayList<>());
         mAsyncRegisterList = Collections.synchronizedList(new ArrayList<>());
-        mThreadPoolExecutor = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors(),
-                Integer.MAX_VALUE,
-                30, TimeUnit.SECONDS, new SynchronousQueue<>());
-        mThreadPoolExecutor.allowCoreThreadTimeOut(true);
-        mThreadPoolExecutor.prestartAllCoreThreads();
+        initThreadPool();
         registerModule(rootModule);
         // after all things are registered, trigger load for all futures
         loadAllAsyncRegisters();
@@ -102,7 +108,7 @@ class DefaultProvider implements Provider, ProviderRegistry {
 
     @Override
     public <I> void registerAsync(Class<I> clazz, ProviderValue<I> providerValue) {
-        LazyFutureProviderRegister providerRegister = new LazyFutureProviderRegister(clazz, providerValue, mThreadPoolExecutor);
+        LazyFutureProviderRegister providerRegister = new LazyFutureProviderRegister(clazz, providerValue, sThreadPoolExecutor);
         register(providerRegister);
         mAsyncRegisterList.add(providerRegister);
     }
