@@ -43,7 +43,10 @@ public class MyApplication extends Application {
     public void onCreate() {
         super.onCreate();
         // store the instance in static value for global access
-        Provider.create(this, new RootModule());
+        Provider provider = Provider.create(this, new RootModule());
+        // example retrieve value
+        IServiceA iServiceA = provider.get(IServiceA.class);
+        MyPojo myPojo = provider.get(MyPojo.class);
     }
 }
 ```
