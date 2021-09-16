@@ -1,6 +1,8 @@
 package m.co.rh.id.provider;
 
 import android.content.Context;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 
 import java.util.ArrayList;
@@ -8,6 +10,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -20,7 +23,7 @@ class DefaultProvider implements Provider, ProviderRegistry {
     private static final String TAG = "DefaultProvider";
     private static ThreadPoolExecutor sThreadPoolExecutor;
 
-    private static synchronized void initThreadPool() {
+    private static synchronized ThreadPoolExecutor initThreadPool() {
         if (sThreadPoolExecutor == null) {
             sThreadPoolExecutor = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors(),
                     Integer.MAX_VALUE,
@@ -28,20 +31,28 @@ class DefaultProvider implements Provider, ProviderRegistry {
             sThreadPoolExecutor.allowCoreThreadTimeOut(true);
             sThreadPoolExecutor.prestartAllCoreThreads();
         }
+        return sThreadPoolExecutor;
     }
 
     private Context mContext;
     private Map<Class, Object> mObjectMap;
     private List<ProviderModule> mModuleList;
     private List<LazyFutureProviderRegister> mAsyncRegisterList;
+    private Handler mHandler;
+    private ExecutorService mExecutorService;
     private boolean mIsDisposed;
 
     DefaultProvider(Context context, ProviderModule rootModule) {
+        this(context, rootModule, new Handler(Looper.getMainLooper()), initThreadPool());
+    }
+
+    DefaultProvider(Context context, ProviderModule rootModule, Handler handler, ExecutorService executorService) {
         mContext = context;
         mObjectMap = new ConcurrentHashMap<>();
         mModuleList = Collections.synchronizedList(new ArrayList<>());
         mAsyncRegisterList = Collections.synchronizedList(new ArrayList<>());
-        initThreadPool();
+        mHandler = handler;
+        mExecutorService = executorService;
         registerModule(rootModule);
         // after all things are registered, trigger load for all futures
         loadAllAsyncRegisters();
@@ -73,6 +84,18 @@ class DefaultProvider implements Provider, ProviderRegistry {
             Log.e(TAG, e.getMessage(), e);
         }
         return null;
+    }
+
+    @Override
+    public <I> void getAsyncAndDo(Class<I> clazz, ProviderAction<I> actionOnMainThread) {
+        mExecutorService.execute(() -> {
+            try {
+                I value = get(clazz);
+                mHandler.post(() -> actionOnMainThread.onSuccess(value));
+            } catch (Exception exception) {
+                mHandler.post(() -> actionOnMainThread.onError(exception));
+            }
+        });
     }
 
     @Override
@@ -108,7 +131,7 @@ class DefaultProvider implements Provider, ProviderRegistry {
 
     @Override
     public <I> void registerAsync(Class<I> clazz, ProviderValue<I> providerValue) {
-        LazyFutureProviderRegister providerRegister = new LazyFutureProviderRegister(clazz, providerValue, sThreadPoolExecutor);
+        LazyFutureProviderRegister providerRegister = new LazyFutureProviderRegister(clazz, providerValue, mExecutorService);
         register(providerRegister);
         mAsyncRegisterList.add(providerRegister);
     }

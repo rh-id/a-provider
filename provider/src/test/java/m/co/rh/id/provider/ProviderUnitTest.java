@@ -1,15 +1,18 @@
 package m.co.rh.id.provider;
 
 import android.content.Context;
+import android.os.Handler;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicReference;
 
 import m.co.rh.id.provider.test.IServiceA;
 import m.co.rh.id.provider.test.IServiceA1;
@@ -28,12 +31,17 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ProviderUnitTest {
 
     @Mock
     Context mockContext;
+
+    @Mock
+    Handler mockHandler;
 
     @Test
     public void singleton_registrationAndGet() {
@@ -395,5 +403,75 @@ public class ProviderUnitTest {
         // because same factory,
         // both have same value and might be equals but not same instance
         assertNotSame(myPojo1, myPojo2);
+    }
+
+    @Test
+    public void getAsyncAndDo_registrationAndGet() throws InterruptedException {
+        when(mockHandler.post(any())).then(
+                invocation -> {
+                    Runnable r = invocation.getArgument(0);
+                    r.run();
+                    return true;
+                }
+        );
+        Provider testProvider = new DefaultProvider(mockContext,
+                new ProviderModule() {
+                    @Override
+                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                        providerRegistry.registerFactory(MyPojo.class, () -> {
+                            MyPojo myPojo = new MyPojo();
+                            myPojo.setAge(99);
+                            myPojo.setName("Foo");
+                            return myPojo;
+                        });
+                    }
+
+                    @Override
+                    public void dispose(Context context, Provider provider) {
+                        // leave blank
+                    }
+                }, mockHandler, Executors.newSingleThreadExecutor());
+
+        CountDownLatch testCountDownLatch = new CountDownLatch(1);
+        AtomicReference<Object> atomicReference = new AtomicReference<>();
+        testProvider.getAsyncAndDo(MyPojo.class, new ProviderAction<MyPojo>() {
+            @Override
+            public void onSuccess(MyPojo value) {
+                atomicReference.set(value);
+                testCountDownLatch.countDown();
+            }
+
+            @Override
+            public void onError(Exception exception) {
+                atomicReference.set(exception);
+                testCountDownLatch.countDown();
+            }
+        });
+        testCountDownLatch.await();
+        assertTrue(atomicReference.get() instanceof MyPojo);
+        MyPojo myPojo = (MyPojo) atomicReference.get();
+        assertNotNull(myPojo);
+        assertEquals(myPojo.getAge(), 99);
+        assertEquals(myPojo.getName(), "Foo");
+
+        // exception scenario where IServiceA not exist
+        CountDownLatch testCountDownLatch2 = new CountDownLatch(1);
+        AtomicReference<Object> atomicReference2 = new AtomicReference<>();
+        testProvider.getAsyncAndDo(IServiceA.class, new ProviderAction<IServiceA>() {
+            @Override
+            public void onSuccess(IServiceA value) {
+                atomicReference2.set(value);
+                testCountDownLatch2.countDown();
+            }
+
+            @Override
+            public void onError(Exception exception) {
+                atomicReference2.set(exception);
+                testCountDownLatch2.countDown();
+            }
+        });
+        testCountDownLatch2.await();
+        assertNotNull(atomicReference2.get());
+        assertTrue(atomicReference2.get() instanceof NullPointerException);
     }
 }
