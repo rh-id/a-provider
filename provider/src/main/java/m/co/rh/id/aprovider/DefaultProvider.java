@@ -100,14 +100,23 @@ class DefaultProvider implements Provider, ProviderRegistry {
 
     @Override
     public synchronized void dispose() {
+        if (mIsDisposed) {
+            return;
+        }
         mIsDisposed = true;
         if (!mModuleList.isEmpty()) {
             for (ProviderModule providerModule : mModuleList) {
                 providerModule.dispose(mContext, this);
             }
             mModuleList.clear();
+            mModuleList = null;
         }
         mObjectMap.clear();
+        mObjectMap = null;
+        mAsyncRegisterList.clear();
+        mAsyncRegisterList = null;
+        mHandler = null;
+        mExecutorService = null;
         mContext = null;
     }
 
