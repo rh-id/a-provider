@@ -103,6 +103,12 @@ class DefaultProvider implements Provider, ProviderRegistry {
         if (mIsDisposed) {
             return;
         }
+        /*
+         do not simply clear mObjectMap, mHandler, mExecutorService.
+          during providerModule.dispose
+           provider.getAsyncAndDo might be called,
+          these fields are required to perform get or getAsyncAndDo
+         */
         mIsDisposed = true;
         if (!mModuleList.isEmpty()) {
             for (ProviderModule providerModule : mModuleList) {
@@ -111,12 +117,8 @@ class DefaultProvider implements Provider, ProviderRegistry {
             mModuleList.clear();
             mModuleList = null;
         }
-        mObjectMap.clear();
-        mObjectMap = null;
         mAsyncRegisterList.clear();
         mAsyncRegisterList = null;
-        mHandler = null;
-        mExecutorService = null;
         mContext = null;
     }
 
