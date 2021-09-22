@@ -5,6 +5,26 @@ This is a simple Service Locator for Android projects that doesn't rely on annot
 
 ## Example Usage
 
+This project support jitpack, in order to use this, you need to add jitpack to your project root build.gradle:
+```
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        maven { url "https://jitpack.io" }
+        jcenter() // Warning: this repository is going to shut down soon
+    }
+}
+```
+
+Include this to your module dependency (module build.gradle)
+```
+dependencies {
+    implementation 'com.github.rh-id:a-provider:v0.0.1'
+}
+```
+
+Then you could proceed writing code,
 First create root module as a root of the provider to provide services.
 
 ```
