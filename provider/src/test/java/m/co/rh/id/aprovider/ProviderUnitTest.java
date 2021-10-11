@@ -1,5 +1,15 @@
 package m.co.rh.id.aprovider;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
 import android.content.Context;
 import android.os.Handler;
 
@@ -23,16 +33,6 @@ import m.co.rh.id.aprovider.test.ServiceAChildImpl;
 import m.co.rh.id.aprovider.test.ServiceAImpl;
 import m.co.rh.id.aprovider.test.ServiceAParentImpl;
 import m.co.rh.id.aprovider.test.ServiceBImpl;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ProviderUnitTest {
@@ -69,6 +69,39 @@ public class ProviderUnitTest {
         ServiceAImpl serviceAImplFromProvider = testProvider.get(ServiceAImpl.class);
         assertSame(serviceAImplFromProvider, serviceA);
         ServiceAParentImpl serviceAParentImplFromProvider = testProvider.get(ServiceAParentImpl.class);
+        assertSame(serviceAParentImplFromProvider, serviceA);
+
+        // test to ensure ServiceAChildImpl not found since the implementation is the parent of ServiceAChildImpl
+        ServiceAChildImpl serviceAChildImplFromProvider = testProvider.tryGet(ServiceAChildImpl.class);
+        assertNull(serviceAChildImplFromProvider);
+    }
+
+    @Test
+    public void singleton_registrationAndLazyGet() {
+        ServiceAImpl serviceA = new ServiceAImpl();
+        Provider testProvider = Provider.createProvider(mockContext, new ProviderModule() {
+            @Override
+            public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                providerRegistry.register(IServiceA.class, serviceA);
+            }
+
+            @Override
+            public void dispose(Context context, Provider provider) {
+                // nothing to dispose
+            }
+        });
+
+        IServiceA serviceAFromProvider = testProvider.lazyGet(IServiceA.class).get();
+        assertSame(serviceAFromProvider, serviceA);
+
+        // if the implementation implements another interface, allow to get it
+        IServiceA1 serviceA1FromProvider = testProvider.lazyGet(IServiceA1.class).get();
+        assertSame(serviceA1FromProvider, serviceA);
+
+        // allow to get using the actual implementation class or its parent class
+        ServiceAImpl serviceAImplFromProvider = testProvider.lazyGet(ServiceAImpl.class).get();
+        assertSame(serviceAImplFromProvider, serviceA);
+        ServiceAParentImpl serviceAParentImplFromProvider = testProvider.lazyGet(ServiceAParentImpl.class).get();
         assertSame(serviceAParentImplFromProvider, serviceA);
 
         // test to ensure ServiceAChildImpl not found since the implementation is the parent of ServiceAChildImpl

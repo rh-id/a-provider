@@ -31,6 +31,16 @@ public interface Provider {
     <I> I tryGet(Class<I> clazz);
 
     /**
+     * Defer {@link #get(Class)} execution into ProviderValue instance.
+     * To get the actual value call ProviderValue.get()
+     *
+     * @param clazz class to be retrieved
+     * @param <I>   object type to be returned
+     * @return ProviderValue with type I
+     */
+    <I> ProviderValue<I> lazyGet(Class<I> clazz);
+
+    /**
      * Perform {@link #get(Class)} on background thread and do action as defined by {@link ProviderAction} param.<br/>
      * NOTE: make sure that the registered Class is safe to get or executed in background thread.<br/>
      * If {@link #get(Class)} somehow throw exception it will be forwarded to actionOnMainThread.onError
