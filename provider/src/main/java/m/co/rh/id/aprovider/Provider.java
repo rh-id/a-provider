@@ -37,6 +37,7 @@ public interface Provider {
      * @param clazz class to be retrieved
      * @param <I>   object type to be returned
      * @return ProviderValue with type I
+     * @throws NullPointerException if clazz with type I not found
      */
     <I> ProviderValue<I> lazyGet(Class<I> clazz);
 

@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -103,6 +104,9 @@ public class ProviderUnitTest {
         assertSame(serviceAImplFromProvider, serviceA);
         ServiceAParentImpl serviceAParentImplFromProvider = testProvider.lazyGet(ServiceAParentImpl.class).get();
         assertSame(serviceAParentImplFromProvider, serviceA);
+
+        // service B is not registered, should throw null pointer upon invocation
+        assertThrows(NullPointerException.class, () -> testProvider.lazyGet(IServiceB.class));
 
         // test to ensure ServiceAChildImpl not found since the implementation is the parent of ServiceAChildImpl
         ServiceAChildImpl serviceAChildImplFromProvider = testProvider.tryGet(ServiceAChildImpl.class);

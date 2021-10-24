@@ -88,6 +88,23 @@ class DefaultProvider implements Provider, ProviderRegistry {
 
     @Override
     public <I> ProviderValue<I> lazyGet(Class<I> clazz) {
+        // check existence of the object without processing ProviderRegister
+        Object result = mObjectMap.get(clazz);
+        if (result == null) {
+            boolean classFound = false;
+            for (Map.Entry<Class, Object> entry : mObjectMap.entrySet()) {
+                if (clazz.isAssignableFrom(entry.getKey())) {
+                    classFound = true;
+                    break;
+                } else if (clazz.isInstance(entry.getValue())) {
+                    classFound = true;
+                    break;
+                }
+            }
+            if (!classFound) {
+                throw new DefaultProviderNullPointerException(clazz.getName() + " not found");
+            }
+        }
         return () -> get(clazz);
     }
 
