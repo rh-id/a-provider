@@ -113,38 +113,12 @@ class DefaultProvider implements Provider, ProviderRegistry {
         return () -> tryGet(clazz);
     }
 
-    @Override
-    public <I> I exactGet(Class<I> clazz) {
+    private <I> I exactGet(Class<I> clazz) {
         Object result = mObjectMap.get(clazz);
         if (result != null) {
             return processObject(result);
         }
         throw new DefaultProviderNullPointerException(clazz.getName() + " not found");
-    }
-
-    @Override
-    public <I> I tryExactGet(Class<I> clazz) {
-        try {
-            return exactGet(clazz);
-        } catch (DefaultProviderNullPointerException e) {
-            // Leave blank, this means get return null, not the service itself throws null pointer
-        } catch (Exception e) {
-            Log.e(TAG, e.getMessage(), e);
-        }
-        return null;
-    }
-
-    @Override
-    public <I> ProviderValue<I> lazyExactGet(Class<I> clazz) {
-        if (!mObjectMap.containsKey(clazz)) {
-            throw new DefaultProviderNullPointerException(clazz.getName() + " not found");
-        }
-        return () -> exactGet(clazz);
-    }
-
-    @Override
-    public <I> ProviderValue<I> tryLazyExactGet(Class<I> clazz) {
-        return () -> tryExactGet(clazz);
     }
 
     @Override

@@ -63,10 +63,6 @@ public class ProviderUnitTest {
         assertSame(testProvider.get(ProviderRegistry.class), testProvider);
         assertSame(testProvider.lazyGet(ProviderRegistry.class).get(), testProvider);
         assertSame(testProvider.tryLazyGet(ProviderRegistry.class).get(), testProvider);
-        assertSame(testProvider.exactGet(ProviderRegistry.class), testProvider);
-        assertSame(testProvider.lazyExactGet(ProviderRegistry.class).get(), testProvider);
-        assertSame(testProvider.tryExactGet(ProviderRegistry.class), testProvider);
-        assertSame(testProvider.tryLazyExactGet(ProviderRegistry.class).get(), testProvider);
     }
 
     @Test
@@ -87,14 +83,12 @@ public class ProviderUnitTest {
             }
         });
 
-        assertSame(testProvider.exactGet(ExecutorService.class), executorService);
-        assertSame(testProvider.exactGet(ScheduledExecutorService.class), scheduledExecutorService);
-        assertSame(testProvider.lazyExactGet(ExecutorService.class).get(), executorService);
-        assertSame(testProvider.lazyExactGet(ScheduledExecutorService.class).get(), scheduledExecutorService);
-        assertSame(testProvider.tryExactGet(ExecutorService.class), executorService);
-        assertSame(testProvider.tryExactGet(ScheduledExecutorService.class), scheduledExecutorService);
-        assertSame(testProvider.tryLazyExactGet(ExecutorService.class).get(), executorService);
-        assertSame(testProvider.tryLazyExactGet(ScheduledExecutorService.class).get(), scheduledExecutorService);
+        assertSame(testProvider.get(ExecutorService.class), executorService);
+        assertSame(testProvider.get(ScheduledExecutorService.class), scheduledExecutorService);
+        assertSame(testProvider.lazyGet(ExecutorService.class).get(), executorService);
+        assertSame(testProvider.lazyGet(ScheduledExecutorService.class).get(), scheduledExecutorService);
+        assertSame(testProvider.tryLazyGet(ExecutorService.class).get(), executorService);
+        assertSame(testProvider.tryLazyGet(ScheduledExecutorService.class).get(), scheduledExecutorService);
     }
 
     @Test
