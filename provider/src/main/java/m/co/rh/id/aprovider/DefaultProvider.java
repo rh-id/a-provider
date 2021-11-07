@@ -90,8 +90,7 @@ class DefaultProvider implements Provider, ProviderRegistry {
     @Override
     public <I> ProviderValue<I> lazyGet(Class<I> clazz) {
         // check existence of the object without processing ProviderRegister
-        Object result = mObjectMap.get(clazz);
-        if (result == null) {
+        if (!mObjectMap.containsKey(clazz)) {
             boolean classFound = false;
             for (Map.Entry<Class, Object> entry : mObjectMap.entrySet()) {
                 if (clazz.isAssignableFrom(entry.getKey())) {
@@ -112,6 +111,40 @@ class DefaultProvider implements Provider, ProviderRegistry {
     @Override
     public <I> ProviderValue<I> tryLazyGet(Class<I> clazz) {
         return () -> tryGet(clazz);
+    }
+
+    @Override
+    public <I> I exactGet(Class<I> clazz) {
+        Object result = mObjectMap.get(clazz);
+        if (result != null) {
+            return processObject(result);
+        }
+        throw new DefaultProviderNullPointerException(clazz.getName() + " not found");
+    }
+
+    @Override
+    public <I> I tryExactGet(Class<I> clazz) {
+        try {
+            return exactGet(clazz);
+        } catch (DefaultProviderNullPointerException e) {
+            // Leave blank, this means get return null, not the service itself throws null pointer
+        } catch (Exception e) {
+            Log.e(TAG, e.getMessage(), e);
+        }
+        return null;
+    }
+
+    @Override
+    public <I> ProviderValue<I> lazyExactGet(Class<I> clazz) {
+        if (!mObjectMap.containsKey(clazz)) {
+            throw new DefaultProviderNullPointerException(clazz.getName() + " not found");
+        }
+        return () -> exactGet(clazz);
+    }
+
+    @Override
+    public <I> ProviderValue<I> tryLazyExactGet(Class<I> clazz) {
+        return () -> tryExactGet(clazz);
     }
 
     @Override
@@ -201,7 +234,7 @@ class DefaultProvider implements Provider, ProviderRegistry {
     private <I> void putValue(Class<I> clazz, Object implementation) {
         I tryGetResult = null;
         try {
-            tryGetResult = get(clazz);
+            tryGetResult = exactGet(clazz);
         } catch (DefaultProviderNullPointerException e) {
             // leave blank
         }

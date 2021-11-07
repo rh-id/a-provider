@@ -23,6 +23,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
 
 import m.co.rh.id.aprovider.test.IServiceA;
@@ -62,6 +63,38 @@ public class ProviderUnitTest {
         assertSame(testProvider.get(ProviderRegistry.class), testProvider);
         assertSame(testProvider.lazyGet(ProviderRegistry.class).get(), testProvider);
         assertSame(testProvider.tryLazyGet(ProviderRegistry.class).get(), testProvider);
+        assertSame(testProvider.exactGet(ProviderRegistry.class), testProvider);
+        assertSame(testProvider.lazyExactGet(ProviderRegistry.class).get(), testProvider);
+        assertSame(testProvider.tryExactGet(ProviderRegistry.class), testProvider);
+        assertSame(testProvider.tryLazyExactGet(ProviderRegistry.class).get(), testProvider);
+    }
+
+    @Test
+    public void singleton_registrationAndExactGet() {
+        // testing real case scenario where you need both ExecutorService & ScheduledExecutorService
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+        Provider testProvider = Provider.createProvider(mockContext, new ProviderModule() {
+            @Override
+            public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                providerRegistry.register(ScheduledExecutorService.class, scheduledExecutorService);
+                providerRegistry.register(ExecutorService.class, executorService);
+            }
+
+            @Override
+            public void dispose(Context context, Provider provider) {
+                // nothing to dispose
+            }
+        });
+
+        assertSame(testProvider.exactGet(ExecutorService.class), executorService);
+        assertSame(testProvider.exactGet(ScheduledExecutorService.class), scheduledExecutorService);
+        assertSame(testProvider.lazyExactGet(ExecutorService.class).get(), executorService);
+        assertSame(testProvider.lazyExactGet(ScheduledExecutorService.class).get(), scheduledExecutorService);
+        assertSame(testProvider.tryExactGet(ExecutorService.class), executorService);
+        assertSame(testProvider.tryExactGet(ScheduledExecutorService.class), scheduledExecutorService);
+        assertSame(testProvider.tryLazyExactGet(ExecutorService.class).get(), executorService);
+        assertSame(testProvider.tryLazyExactGet(ScheduledExecutorService.class).get(), scheduledExecutorService);
     }
 
     @Test
