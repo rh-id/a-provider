@@ -45,6 +45,26 @@ public class ProviderUnitTest {
     Handler mockHandler;
 
     @Test
+    public void getProviderRegistryUsingGet() {
+        ServiceAImpl serviceA = new ServiceAImpl();
+        Provider testProvider = Provider.createProvider(mockContext, new ProviderModule() {
+            @Override
+            public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                // leave blank
+            }
+
+            @Override
+            public void dispose(Context context, Provider provider) {
+                // nothing to dispose
+            }
+        });
+
+        assertSame(testProvider.get(ProviderRegistry.class), testProvider);
+        assertSame(testProvider.lazyGet(ProviderRegistry.class).get(), testProvider);
+        assertSame(testProvider.tryLazyGet(ProviderRegistry.class).get(), testProvider);
+    }
+
+    @Test
     public void singleton_registrationAndGet() {
         ServiceAImpl serviceA = new ServiceAImpl();
         Provider testProvider = Provider.createProvider(mockContext, new ProviderModule() {

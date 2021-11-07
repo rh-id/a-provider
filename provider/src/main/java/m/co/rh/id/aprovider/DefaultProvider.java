@@ -49,6 +49,7 @@ class DefaultProvider implements Provider, ProviderRegistry {
     DefaultProvider(Context context, ProviderModule rootModule, Handler handler, ExecutorService executorService) {
         mContext = context;
         mObjectMap = new ConcurrentHashMap<>();
+        mObjectMap.put(ProviderRegistry.class, this);
         mModuleList = Collections.synchronizedList(new ArrayList<>());
         mAsyncRegisterList = Collections.synchronizedList(new ArrayList<>());
         mHandler = handler;
