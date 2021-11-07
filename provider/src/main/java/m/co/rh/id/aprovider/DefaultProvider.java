@@ -109,6 +109,11 @@ class DefaultProvider implements Provider, ProviderRegistry {
     }
 
     @Override
+    public <I> ProviderValue<I> tryLazyGet(Class<I> clazz) {
+        return () -> tryGet(clazz);
+    }
+
+    @Override
     public <I> void getAsyncAndDo(Class<I> clazz, ProviderAction<I> actionOnMainThread) {
         mExecutorService.execute(() -> {
             try {

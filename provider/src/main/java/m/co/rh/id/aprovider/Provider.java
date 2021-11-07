@@ -42,6 +42,20 @@ public interface Provider {
     <I> ProviderValue<I> lazyGet(Class<I> clazz);
 
     /**
+     * Same as {@link #lazyGet(Class)} with difference not throwing NullPointerException
+     * if the class type is not registered yet.
+     * <p>
+     * This method guarantees to return ProviderValue without exception,
+     * but not guarantee that ProviderValue.get() is not null.
+     * ProviderValue.get() may return null without throwing any exception
+     *
+     * @param clazz class to be retrieved
+     * @param <I>   object type to be returned
+     * @return ProviderValue with type I
+     */
+    <I> ProviderValue<I> tryLazyGet(Class<I> clazz);
+
+    /**
      * Perform {@link #get(Class)} on background thread and do action as defined by {@link ProviderAction} param.<br/>
      * NOTE: make sure that the registered Class is safe to get or executed in background thread.<br/>
      * If {@link #get(Class)} somehow throw exception it will be forwarded to actionOnMainThread.onError

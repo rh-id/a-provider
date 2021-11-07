@@ -113,6 +113,42 @@ public class ProviderUnitTest {
         assertNull(serviceAChildImplFromProvider);
     }
 
+    @Test
+    public void singleton_registrationAndLazyGetAndTryLazyGetDifference() {
+        ServiceAImpl serviceA = new ServiceAImpl();
+        DefaultProvider testProvider = (DefaultProvider)
+                Provider.createProvider(mockContext, new ProviderModule() {
+                    @Override
+                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                        // leave blank
+                    }
+
+                    @Override
+                    public void dispose(Context context, Provider provider) {
+                        // nothing to dispose
+                    }
+                });
+
+        assertThrows(NullPointerException.class, () -> testProvider.get(IServiceA.class));
+        assertThrows(NullPointerException.class, () -> testProvider.lazyGet(IServiceA.class));
+        ProviderValue<IServiceA> tryLazyGet = testProvider.tryLazyGet(IServiceA.class);
+        assertNotNull(tryLazyGet);
+
+        // the value is null but not throwing null pointer exception
+        assertNull(tryLazyGet.get());
+
+        ServiceAImpl serviceA1 = new ServiceAImpl();
+        testProvider.register(IServiceA.class, serviceA);
+
+        // after register the get should contain value
+        assertSame(tryLazyGet.get(), serviceA);
+
+        assertSame(testProvider.get(IServiceA1.class), serviceA);
+        assertSame(testProvider.lazyGet(IServiceA1.class).get(), serviceA);
+        assertSame(testProvider.tryLazyGet(IServiceA1.class).get(), serviceA);
+
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void singleton_registerSameClass() {
         ServiceAImpl serviceA = new ServiceAImpl();
