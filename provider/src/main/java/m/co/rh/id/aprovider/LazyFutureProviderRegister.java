@@ -2,8 +2,8 @@ package m.co.rh.id.aprovider;
 
 import android.util.Log;
 
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * Helper class to register lazy-loaded future singleton to the provider
@@ -11,26 +11,25 @@ import java.util.concurrent.Future;
 class LazyFutureProviderRegister<I> extends ProviderRegister<I> {
     private static final String TAG = "FutureProvider";
     private Future<I> mFutureValue;
-    private ExecutorService mExecutorService;
+    private ThreadPoolExecutor mThreadPoolExecutor;
 
-    public LazyFutureProviderRegister(Class<I> type, ProviderValue<I> providerValue, ExecutorService executorService) {
+    public LazyFutureProviderRegister(Class<I> type, ProviderValue<I> providerValue, ThreadPoolExecutor executorService) {
         super(type, providerValue);
-        mExecutorService = executorService;
+        mThreadPoolExecutor = executorService;
     }
 
     @Override
     public synchronized I get() {
-        long beforeGetTimeMilis = System.currentTimeMillis();
         startLoad();
         try {
-            I value = mFutureValue.get();
-            long afterGetTimeMilis = System.currentTimeMillis();
-            long difference = afterGetTimeMilis - beforeGetTimeMilis;
-            // If it takes more than 0.5 seconds it seemed to have performance issue?
-            if (difference > 500) {
-                Log.w(TAG, getType().getName() + " takes " + difference + " ms");
+            while (!mFutureValue.isDone()) {
+                // try to run next task to avoid deadlock due to limited thread size
+                Runnable nextTask = mThreadPoolExecutor.getQueue().poll();
+                if (nextTask != null) {
+                    nextTask.run();
+                }
             }
-            return value;
+            return mFutureValue.get();
         } catch (Exception e) {
             Log.e(TAG, getType().getName() + " throws exception with message: " + e.getMessage());
             throw new RuntimeException(e);
@@ -39,7 +38,7 @@ class LazyFutureProviderRegister<I> extends ProviderRegister<I> {
 
     public synchronized void startLoad() {
         if (mFutureValue == null) {
-            mFutureValue = mExecutorService.submit(() -> getProviderValue().get());
+            mFutureValue = mThreadPoolExecutor.submit(() -> getProviderValue().get());
         }
     }
 }
