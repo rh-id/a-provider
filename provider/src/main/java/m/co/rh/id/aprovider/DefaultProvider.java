@@ -120,28 +120,10 @@ class DefaultProvider implements Provider, ProviderRegistry {
     }
 
     @Override
-    public <I> void getAsyncAndDo(Class<I> clazz, ProviderAction<I> actionOnMainThread) {
-        mThreadPoolExecutor.execute(() -> {
-            try {
-                I value = get(clazz);
-                mHandler.post(() -> actionOnMainThread.onSuccess(value));
-            } catch (Exception exception) {
-                mHandler.post(() -> actionOnMainThread.onError(exception));
-            }
-        });
-    }
-
-    @Override
     public synchronized void dispose() {
         if (mIsDisposed) {
             return;
         }
-        /*
-         do not simply clear mObjectMap, mHandler, mExecutorService.
-          during providerModule.dispose
-           provider.getAsyncAndDo might be called,
-          these fields are required to perform get or getAsyncAndDo
-         */
         mIsDisposed = true;
         if (!mModuleList.isEmpty()) {
             for (ProviderModule providerModule : mModuleList) {
@@ -150,8 +132,12 @@ class DefaultProvider implements Provider, ProviderRegistry {
             mModuleList.clear();
             mModuleList = null;
         }
+        mObjectMap.clear();
+        mObjectMap = null;
         mAsyncRegisterList.clear();
         mAsyncRegisterList = null;
+        mHandler = null;
+        mThreadPoolExecutor = null;
         mContext = null;
     }
 

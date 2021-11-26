@@ -56,17 +56,6 @@ public interface Provider {
     <I> ProviderValue<I> tryLazyGet(Class<I> clazz);
 
     /**
-     * Perform {@link #get(Class)} on background thread and do action as defined by {@link ProviderAction} param.<br/>
-     * NOTE: make sure that the registered Class is safe to get or executed in background thread.<br/>
-     * If {@link #get(Class)} somehow throw exception it will be forwarded to actionOnMainThread.onError
-     *
-     * @param clazz              class to be retrieved
-     * @param actionOnMainThread action to do on main thread
-     * @param <I>                object type to be get asynchronously and executed on main thread
-     */
-    <I> void getAsyncAndDo(Class<I> clazz, ProviderAction<I> actionOnMainThread);
-
-    /**
      * Clear all registered object from provider, and perform disposal/clean up of for all {@link ProviderModule}
      * this provider will not be able to be used once this method is called, new one will need to be instantiated
      */
