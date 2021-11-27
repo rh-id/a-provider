@@ -1,8 +1,6 @@
 package m.co.rh.id.aprovider;
 
 import android.content.Context;
-import android.os.Handler;
-import android.os.Looper;
 import android.util.Log;
 
 import java.util.ArrayList;
@@ -36,21 +34,19 @@ class DefaultProvider implements Provider, ProviderRegistry {
     private Map<Class, Object> mObjectMap;
     private List<ProviderModule> mModuleList;
     private List<LazyFutureProviderRegister> mAsyncRegisterList;
-    private Handler mHandler;
     private ThreadPoolExecutor mThreadPoolExecutor;
     private boolean mIsDisposed;
 
     DefaultProvider(Context context, ProviderModule rootModule) {
-        this(context, rootModule, new Handler(Looper.getMainLooper()), initThreadPool());
+        this(context, rootModule, initThreadPool());
     }
 
-    DefaultProvider(Context context, ProviderModule rootModule, Handler handler, ThreadPoolExecutor threadPoolExecutor) {
+    DefaultProvider(Context context, ProviderModule rootModule, ThreadPoolExecutor threadPoolExecutor) {
         mContext = context;
         mObjectMap = new ConcurrentHashMap<>();
         mObjectMap.put(ProviderRegistry.class, this);
         mModuleList = Collections.synchronizedList(new ArrayList<>());
         mAsyncRegisterList = Collections.synchronizedList(new ArrayList<>());
-        mHandler = handler;
         mThreadPoolExecutor = threadPoolExecutor;
         registerModule(rootModule);
         // after all things are registered, trigger load for all futures
@@ -111,12 +107,9 @@ class DefaultProvider implements Provider, ProviderRegistry {
         return () -> tryGet(clazz);
     }
 
-    private <I> I exactGet(Class<I> clazz) {
-        Object result = mObjectMap.get(clazz);
-        if (result != null) {
-            return processObject(result);
-        }
-        throw new DefaultProviderNullPointerException(clazz.getName() + " not found");
+    @Override
+    public Context getContext() {
+        return mContext;
     }
 
     @Override
@@ -136,7 +129,6 @@ class DefaultProvider implements Provider, ProviderRegistry {
         mObjectMap = null;
         mAsyncRegisterList.clear();
         mAsyncRegisterList = null;
-        mHandler = null;
         mThreadPoolExecutor = null;
         mContext = null;
     }
@@ -169,6 +161,14 @@ class DefaultProvider implements Provider, ProviderRegistry {
     @Override
     public <I> void registerFactory(Class<I> clazz, ProviderValue<I> providerValue) {
         register(new FactoryProviderRegister<>(clazz, providerValue));
+    }
+
+    private <I> I exactGet(Class<I> clazz) {
+        Object result = mObjectMap.get(clazz);
+        if (result != null) {
+            return processObject(result);
+        }
+        throw new DefaultProviderNullPointerException(clazz.getName() + " not found");
     }
 
     private synchronized void checkDisposed() {

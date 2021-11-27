@@ -56,6 +56,11 @@ public interface Provider {
     <I> ProviderValue<I> tryLazyGet(Class<I> clazz);
 
     /**
+     * Get the context that was supplied when creating this provider.
+     */
+    Context getContext();
+
+    /**
      * Clear all registered object from provider, and perform disposal/clean up of for all {@link ProviderModule}
      * this provider will not be able to be used once this method is called, new one will need to be instantiated
      */
