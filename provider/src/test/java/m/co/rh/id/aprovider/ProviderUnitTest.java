@@ -8,6 +8,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.eq;
 
 import android.content.Context;
 import android.os.Handler;
@@ -15,12 +16,16 @@ import android.os.Handler;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import m.co.rh.id.aprovider.test.IServiceA;
 import m.co.rh.id.aprovider.test.IServiceA1;
@@ -31,6 +36,10 @@ import m.co.rh.id.aprovider.test.ServiceAChildImpl;
 import m.co.rh.id.aprovider.test.ServiceAImpl;
 import m.co.rh.id.aprovider.test.ServiceAParentImpl;
 import m.co.rh.id.aprovider.test.ServiceBImpl;
+import m.co.rh.id.aprovider.test.disposable.DisposableRegisterAsyncService;
+import m.co.rh.id.aprovider.test.disposable.DisposableRegisterFactoryService;
+import m.co.rh.id.aprovider.test.disposable.DisposableRegisterLazyService;
+import m.co.rh.id.aprovider.test.disposable.DisposableRegisterService;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ProviderUnitTest {
@@ -519,5 +528,130 @@ public class ProviderUnitTest {
         // because same factory,
         // both have same value and might be equals but not same instance
         assertNotSame(myPojo1, myPojo2);
+    }
+
+    @Test
+    public void disposableComponents_registerAndDisposeWithoutGet() throws InterruptedException {
+        DisposableRegisterService registerService = Mockito.mock(DisposableRegisterService.class);
+        DisposableRegisterAsyncService registerAsyncService = Mockito.mock(DisposableRegisterAsyncService.class);
+        DisposableRegisterFactoryService registerFactoryService = Mockito.mock(DisposableRegisterFactoryService.class);
+        DisposableRegisterLazyService registerLazyService = Mockito.mock(DisposableRegisterLazyService.class);
+        ProviderModule providerModule = new ProviderModule() {
+            @Override
+            public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                providerRegistry.register(
+                        DisposableRegisterService.class,
+                        registerService
+                );
+                providerRegistry.registerAsync(DisposableRegisterAsyncService.class,
+                        () -> registerAsyncService
+                );
+                // Register factory always return same instance for testing purposes
+                // dispose should not be called since "get" is not called
+                providerRegistry.registerFactory(
+                        DisposableRegisterFactoryService.class,
+                        () -> registerFactoryService
+                );
+                providerRegistry.registerLazy(
+                        DisposableRegisterLazyService.class,
+                        () -> registerLazyService
+                );
+            }
+
+            @Override
+            public void dispose(Context context, Provider provider) {
+                // leave blank
+            }
+        };
+        ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(1, 1, 30, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
+        threadPoolExecutor.prestartAllCoreThreads();
+        Provider testProvider = new DefaultProvider(mockContext,
+                providerModule, threadPoolExecutor);
+        testProvider.dispose();
+        threadPoolExecutor.shutdown();
+        threadPoolExecutor.awaitTermination(5, TimeUnit.SECONDS);
+
+        Mockito.verify(registerService, Mockito.times(1))
+                .dispose(eq(mockContext));
+        Mockito.verify(registerAsyncService, Mockito.times(1))
+                .dispose(eq(mockContext));
+        Mockito.verify(registerFactoryService, Mockito.never())
+                .dispose(eq(mockContext));
+        // Since we didn't try to "Provider.get"
+        // it should not be disposed since the instance was never instantiated
+        Mockito.verify(registerLazyService, Mockito.never())
+                .dispose(eq(mockContext));
+    }
+
+    @Test
+    public void disposableComponents_registerGetAndThenDispose() throws InterruptedException {
+        DisposableRegisterService registerService = Mockito.mock(DisposableRegisterService.class);
+        DisposableRegisterAsyncService registerAsyncService = Mockito.mock(DisposableRegisterAsyncService.class);
+        DisposableRegisterLazyService registerLazyService = Mockito.mock(DisposableRegisterLazyService.class);
+        ProviderModule providerModule = new ProviderModule() {
+            @Override
+            public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                providerRegistry.register(
+                        DisposableRegisterService.class,
+                        registerService
+                );
+                providerRegistry.registerAsync(DisposableRegisterAsyncService.class,
+                        () -> registerAsyncService
+                );
+                providerRegistry.registerFactory(
+                        DisposableRegisterFactoryService.class,
+                        () -> Mockito.mock(DisposableRegisterFactoryService.class)
+                );
+                providerRegistry.registerLazy(
+                        DisposableRegisterLazyService.class,
+                        () -> registerLazyService
+                );
+            }
+
+            @Override
+            public void dispose(Context context, Provider provider) {
+                // leave blank
+            }
+        };
+        ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(1, 1, 30, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
+        threadPoolExecutor.prestartAllCoreThreads();
+        Provider testProvider = new DefaultProvider(mockContext,
+                providerModule, threadPoolExecutor);
+        testProvider.get(DisposableRegisterService.class);
+        testProvider.get(DisposableRegisterAsyncService.class);
+        testProvider.get(DisposableRegisterLazyService.class);
+
+        // test factory before dispose
+        DisposableRegisterFactoryService disposableRegisterFactoryService1 =
+                testProvider.get(DisposableRegisterFactoryService.class);
+        Mockito.verify(disposableRegisterFactoryService1, Mockito.never()).dispose(mockContext);
+
+        DisposableRegisterFactoryService disposableRegisterFactoryService2 =
+                testProvider.get(DisposableRegisterFactoryService.class);
+        assertNotSame(disposableRegisterFactoryService1, disposableRegisterFactoryService2);
+
+        // after new instance is created, previous instance should trigger dispose
+        Mockito.verify(disposableRegisterFactoryService1, Mockito.times(1))
+                .dispose(mockContext);
+        Mockito.verify(disposableRegisterFactoryService2, Mockito.never())
+                .dispose(mockContext);
+
+        testProvider.dispose();
+        threadPoolExecutor.shutdown();
+        threadPoolExecutor.awaitTermination(5, TimeUnit.SECONDS);
+
+        Mockito.verify(registerService, Mockito.times(1))
+                .dispose(eq(mockContext));
+        Mockito.verify(registerAsyncService, Mockito.times(1))
+                .dispose(eq(mockContext));
+        Mockito.verify(registerLazyService, Mockito.times(1))
+                .dispose(eq(mockContext));
+
+        // the previous instance still same, shouldn't trigger dispose again
+        Mockito.verify(disposableRegisterFactoryService1, Mockito.times(1))
+                .dispose(mockContext);
+        // latest instance will trigger dispose
+        Mockito.verify(disposableRegisterFactoryService2, Mockito.times(1))
+                .dispose(mockContext);
     }
 }

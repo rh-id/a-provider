@@ -1,5 +1,6 @@
 package m.co.rh.id.aprovider;
 
+import android.content.Context;
 import android.util.Log;
 
 import java.util.concurrent.Future;
@@ -8,7 +9,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 /**
  * Helper class to register lazy-loaded future singleton to the provider
  */
-class LazyFutureProviderRegister<I> extends ProviderRegister<I> {
+class LazyFutureProviderRegister<I> extends ProviderRegister<I> implements ProviderDisposable {
     private static final String TAG = "FutureProvider";
     private Future<I> mFutureValue;
     private ThreadPoolExecutor mThreadPoolExecutor;
@@ -39,6 +40,20 @@ class LazyFutureProviderRegister<I> extends ProviderRegister<I> {
     public synchronized void startLoad() {
         if (mFutureValue == null) {
             mFutureValue = mThreadPoolExecutor.submit(() -> getProviderValue().get());
+        }
+    }
+
+    @Override
+    public synchronized void dispose(Context context) {
+        if (mFutureValue != null) {
+            try {
+                I i = mFutureValue.get();
+                if (i instanceof ProviderDisposable) {
+                    ((ProviderDisposable) i).dispose(context);
+                }
+            } catch (Exception e) {
+                Log.e(TAG, getType().getName() + " failed to dispose: " + e.getMessage());
+            }
         }
     }
 }

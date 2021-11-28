@@ -125,6 +125,14 @@ class DefaultProvider implements Provider, ProviderRegistry {
             mModuleList.clear();
             mModuleList = null;
         }
+        final Context disposeContext = mContext;
+        for (Map.Entry<Class, Object> entry : mObjectMap.entrySet()) {
+            Object object = entry.getValue();
+            if (object instanceof ProviderDisposable) {
+                mThreadPoolExecutor.execute(() ->
+                        ((ProviderDisposable) object).dispose(disposeContext));
+            }
+        }
         mObjectMap.clear();
         mObjectMap = null;
         mAsyncRegisterList.clear();
@@ -160,7 +168,7 @@ class DefaultProvider implements Provider, ProviderRegistry {
 
     @Override
     public <I> void registerFactory(Class<I> clazz, ProviderValue<I> providerValue) {
-        register(new FactoryProviderRegister<>(clazz, providerValue));
+        register(new FactoryProviderRegister<>(clazz, providerValue, mContext));
     }
 
     private <I> I exactGet(Class<I> clazz) {

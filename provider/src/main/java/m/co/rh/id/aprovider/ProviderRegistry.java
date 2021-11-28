@@ -24,6 +24,8 @@ public interface ProviderRegistry {
 
     /**
      * Register components/services lazily
+     * Implement {@link ProviderDisposable} if you wish for this object to be disposed
+     * when provider.dispose is invoked
      *
      * @param <I>           type of the object/service
      * @param clazz         the class of the service, usually interface
@@ -32,7 +34,9 @@ public interface ProviderRegistry {
     <I> void registerLazy(Class<I> clazz, ProviderValue<I> providerValue);
 
     /**
-     * Register components/services asynchronously in background thread
+     * Register components/services asynchronously in background thread.
+     * Implement {@link ProviderDisposable} if you wish for this object to be disposed
+     * when provider.dispose is invoked
      *
      * @param <I>           type of the object/service
      * @param clazz         the class of the service, usually interface
@@ -43,6 +47,10 @@ public interface ProviderRegistry {
     /**
      * Register as factory for components/services object.
      * new instance will always be returned by using ProviderValue as factory/producer.
+     * <p>
+     * if an object is produced by this factory and is implementing {@link ProviderDisposable}
+     * then ProviderDisposable.dispose will be invoked on previous object
+     * instantiated by this factory before returning new instance.
      *
      * @param <I>           type of the object/service
      * @param clazz         the class of the service, usually interface
