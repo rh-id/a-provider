@@ -34,5 +34,6 @@ class LazySingletonProviderRegister<I> extends ProviderRegister<I> implements Pr
                 }
             }
         }
+        mValue = null;
     }
 }

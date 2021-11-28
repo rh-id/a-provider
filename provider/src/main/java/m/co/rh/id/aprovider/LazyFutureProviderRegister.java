@@ -55,5 +55,7 @@ class LazyFutureProviderRegister<I> extends ProviderRegister<I> implements Provi
                 Log.e(TAG, getType().getName() + " failed to dispose: " + e.getMessage());
             }
         }
+        mFutureValue = null;
+        mThreadPoolExecutor = null;
     }
 }
