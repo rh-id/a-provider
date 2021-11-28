@@ -66,10 +66,30 @@ public class MyApplication extends Application {
     public void onCreate() {
         super.onCreate();
         // store the instance in static value for global access
-        Provider provider = Provider.create(this, new RootModule());
+        Provider provider = Provider.createProvider(this, new RootModule());
         // example retrieve value
         IServiceA iServiceA = provider.get(IServiceA.class);
         MyPojo myPojo = provider.get(MyPojo.class);
+    }
+}
+```
+If you need to handle dispose event you could implement `ProviderDisposable` to your component/services
+```
+public class ServiceAImpl implements IServiceA, ProviderDisposable {
+    @Override
+    public void dispose(Context context){
+    // anything to dispose, this will be called on Provide.dispose
+    }
+}
+```
+```
+public class MyApplication extends Application {
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        Provider provider = Provider.createProvider(this, new RootModule());
+        IServiceA iServiceA = provider.get(IServiceA.class);
+        provider.dispose(); // ServiceAImpl.dispose(Context) will be called
     }
 }
 ```
