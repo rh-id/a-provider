@@ -70,18 +70,6 @@ public class MyApplication extends Application {
         // example retrieve value
         IServiceA iServiceA = provider.get(IServiceA.class);
         MyPojo myPojo = provider.get(MyPojo.class);
-        // if you need async get and perform operation
-        provider.getAsyncAndDo(MyPojo.class, new ProviderAction<MyPojo>() {
-            @Override
-            public void onSuccess(MyPojo value) {
-                // do something on main thread
-            }
-
-            @Override
-            public void onError(Exception exception) {
-                // handle error on main thread
-            }
-        });
     }
 }
 ```
