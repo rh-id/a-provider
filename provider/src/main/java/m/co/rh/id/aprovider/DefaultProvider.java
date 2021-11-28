@@ -38,10 +38,18 @@ class DefaultProvider implements Provider, ProviderRegistry {
     private boolean mIsDisposed;
 
     DefaultProvider(Context context, ProviderModule rootModule) {
-        this(context, rootModule, initThreadPool());
+        this(context, rootModule, initThreadPool(), true);
+    }
+
+    DefaultProvider(Context context, ProviderModule rootModule, boolean autoStart) {
+        this(context, rootModule, initThreadPool(), autoStart);
     }
 
     DefaultProvider(Context context, ProviderModule rootModule, ThreadPoolExecutor threadPoolExecutor) {
+        this(context, rootModule, threadPoolExecutor, true);
+    }
+
+    DefaultProvider(Context context, ProviderModule rootModule, ThreadPoolExecutor threadPoolExecutor, boolean autoStart) {
         mContext = context;
         mObjectMap = new ConcurrentHashMap<>();
         mObjectMap.put(ProviderRegistry.class, this);
@@ -49,8 +57,9 @@ class DefaultProvider implements Provider, ProviderRegistry {
         mAsyncRegisterList = Collections.synchronizedList(new ArrayList<>());
         mThreadPoolExecutor = threadPoolExecutor;
         registerModule(rootModule);
-        // after all things are registered, trigger load for all futures
-        loadAllAsyncRegisters();
+        if (autoStart) {
+            start();
+        }
     }
 
     @Override
@@ -211,7 +220,7 @@ class DefaultProvider implements Provider, ProviderRegistry {
         }
     }
 
-    private void loadAllAsyncRegisters() {
+    void start() {
         if (!mAsyncRegisterList.isEmpty()) {
             for (LazyFutureProviderRegister lazyFutureProviderRegister : mAsyncRegisterList) {
                 lazyFutureProviderRegister.startLoad();

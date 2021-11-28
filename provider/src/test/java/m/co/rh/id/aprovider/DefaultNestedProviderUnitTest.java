@@ -42,7 +42,7 @@ import m.co.rh.id.aprovider.test.disposable.DisposableRegisterLazyService;
 import m.co.rh.id.aprovider.test.disposable.DisposableRegisterService;
 
 @RunWith(MockitoJUnitRunner.class)
-public class ProviderUnitTest {
+public class DefaultNestedProviderUnitTest {
 
     @Mock
     Context mockContext;
@@ -53,17 +53,18 @@ public class ProviderUnitTest {
     @Test
     public void getProviderRegistryUsingGet() {
         ServiceAImpl serviceA = new ServiceAImpl();
-        Provider testProvider = Provider.createProvider(mockContext, new ProviderModule() {
-            @Override
-            public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
-                // leave blank
-            }
+        Provider testProvider = Provider.createNestedProvider("test",
+                null, mockContext, new ProviderModule() {
+                    @Override
+                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                        // leave blank
+                    }
 
-            @Override
-            public void dispose(Context context, Provider provider) {
-                // nothing to dispose
-            }
-        });
+                    @Override
+                    public void dispose(Context context, Provider provider) {
+                        // nothing to dispose
+                    }
+                });
 
         assertSame(testProvider.get(ProviderRegistry.class), testProvider);
         assertSame(testProvider.lazyGet(ProviderRegistry.class).get(), testProvider);
@@ -75,21 +76,24 @@ public class ProviderUnitTest {
         // testing real case scenario where you need both ExecutorService & ScheduledExecutorService
         ExecutorService executorService = Executors.newSingleThreadExecutor();
         ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
-        Provider testProvider = Provider.createProvider(mockContext, new ProviderModule() {
-            @Override
-            public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
-                providerRegistry.register(ScheduledExecutorService.class, scheduledExecutorService);
-                providerRegistry.register(ExecutorService.class, executorService);
-            }
+        Provider testProvider = Provider.createNestedProvider("test",
+                null, mockContext, new ProviderModule() {
+                    @Override
+                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                        providerRegistry.register(ScheduledExecutorService.class, scheduledExecutorService);
+                        providerRegistry.register(ExecutorService.class, executorService);
+                    }
 
-            @Override
-            public void dispose(Context context, Provider provider) {
-                // nothing to dispose
-            }
-        });
+                    @Override
+                    public void dispose(Context context, Provider provider) {
+                        // nothing to dispose
+                    }
+                });
 
         assertSame(testProvider.get(ExecutorService.class), executorService);
         assertSame(testProvider.get(ScheduledExecutorService.class), scheduledExecutorService);
+        assertSame(testProvider.tryGet(ExecutorService.class), executorService);
+        assertSame(testProvider.tryGet(ScheduledExecutorService.class), scheduledExecutorService);
         assertSame(testProvider.lazyGet(ExecutorService.class).get(), executorService);
         assertSame(testProvider.lazyGet(ScheduledExecutorService.class).get(), scheduledExecutorService);
         assertSame(testProvider.tryLazyGet(ExecutorService.class).get(), executorService);
@@ -99,17 +103,18 @@ public class ProviderUnitTest {
     @Test
     public void singleton_registrationAndGet() {
         ServiceAImpl serviceA = new ServiceAImpl();
-        Provider testProvider = Provider.createProvider(mockContext, new ProviderModule() {
-            @Override
-            public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
-                providerRegistry.register(IServiceA.class, serviceA);
-            }
+        Provider testProvider = Provider.createNestedProvider("test",
+                null, mockContext, new ProviderModule() {
+                    @Override
+                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                        providerRegistry.register(IServiceA.class, serviceA);
+                    }
 
-            @Override
-            public void dispose(Context context, Provider provider) {
-                // nothing to dispose
-            }
-        });
+                    @Override
+                    public void dispose(Context context, Provider provider) {
+                        // nothing to dispose
+                    }
+                });
 
         IServiceA serviceAFromProvider = testProvider.get(IServiceA.class);
         assertSame(serviceAFromProvider, serviceA);
@@ -132,17 +137,18 @@ public class ProviderUnitTest {
     @Test
     public void singleton_registrationAndLazyGet() {
         ServiceAImpl serviceA = new ServiceAImpl();
-        Provider testProvider = Provider.createProvider(mockContext, new ProviderModule() {
-            @Override
-            public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
-                providerRegistry.register(IServiceA.class, serviceA);
-            }
+        Provider testProvider = Provider.createNestedProvider("test",
+                null, mockContext, new ProviderModule() {
+                    @Override
+                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                        providerRegistry.register(IServiceA.class, serviceA);
+                    }
 
-            @Override
-            public void dispose(Context context, Provider provider) {
-                // nothing to dispose
-            }
-        });
+                    @Override
+                    public void dispose(Context context, Provider provider) {
+                        // nothing to dispose
+                    }
+                });
 
         IServiceA serviceAFromProvider = testProvider.lazyGet(IServiceA.class).get();
         assertSame(serviceAFromProvider, serviceA);
@@ -168,18 +174,19 @@ public class ProviderUnitTest {
     @Test
     public void singleton_registrationAndLazyGetAndTryLazyGetDifference() {
         ServiceAImpl serviceA = new ServiceAImpl();
-        DefaultProvider testProvider = (DefaultProvider)
-                Provider.createProvider(mockContext, new ProviderModule() {
-                    @Override
-                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
-                        // leave blank
-                    }
+        DefaultNestedProvider testProvider = (DefaultNestedProvider)
+                Provider.createNestedProvider("test",
+                        null, mockContext, new ProviderModule() {
+                            @Override
+                            public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                                // leave blank
+                            }
 
-                    @Override
-                    public void dispose(Context context, Provider provider) {
-                        // nothing to dispose
-                    }
-                });
+                            @Override
+                            public void dispose(Context context, Provider provider) {
+                                // nothing to dispose
+                            }
+                        });
 
         assertThrows(NullPointerException.class, () -> testProvider.get(IServiceA.class));
         assertThrows(NullPointerException.class, () -> testProvider.lazyGet(IServiceA.class));
@@ -204,23 +211,25 @@ public class ProviderUnitTest {
     @Test(expected = IllegalArgumentException.class)
     public void singleton_registerSameClass() {
         ServiceAImpl serviceA = new ServiceAImpl();
-        Provider.createProvider(mockContext, new ProviderModule() {
-            @Override
-            public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
-                providerRegistry.register(IServiceA.class, serviceA);
-                providerRegistry.register(IServiceA.class, new ServiceAImpl());
-            }
+        Provider.createNestedProvider("test",
+                null, mockContext, new ProviderModule() {
+                    @Override
+                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                        providerRegistry.register(IServiceA.class, serviceA);
+                        providerRegistry.register(IServiceA.class, new ServiceAImpl());
+                    }
 
-            @Override
-            public void dispose(Context context, Provider provider) {
-                // leave blank
-            }
-        });
+                    @Override
+                    public void dispose(Context context, Provider provider) {
+                        // leave blank
+                    }
+                });
     }
 
     @Test
     public void module_registrationAndGet() {
-        Provider testProvider = Provider.createProvider(mockContext,
+        Provider testProvider = Provider.createNestedProvider("test",
+                null, mockContext,
                 new ProviderModule() {
                     @Override
                     public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
@@ -254,7 +263,8 @@ public class ProviderUnitTest {
     @Test(expected = IllegalArgumentException.class)
     public void module_registrationMultipleSameModule() {
         // the exception was caused by duplicate services, NOT cause by multiple module instances
-        Provider.createProvider(mockContext,
+        Provider.createNestedProvider("test",
+                null, mockContext,
                 new ProviderModule() {
                     @Override
                     public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
@@ -272,7 +282,8 @@ public class ProviderUnitTest {
     @Test
     public void module_registrationAndDispose() {
         ModuleA moduleA = new ModuleA();
-        Provider testProvider = Provider.createProvider(mockContext,
+        Provider testProvider = Provider.createNestedProvider("test",
+                null, mockContext,
                 moduleA);
         assertFalse(moduleA.isDisposed);
         testProvider.dispose();
@@ -280,7 +291,8 @@ public class ProviderUnitTest {
 
         // test another scenario where module is registered on root module
         final ModuleA registerModuleA = new ModuleA();
-        testProvider = Provider.createProvider(mockContext,
+        testProvider = Provider.createNestedProvider("test",
+                null, mockContext,
                 new ProviderModule() {
                     @Override
                     public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
@@ -299,7 +311,8 @@ public class ProviderUnitTest {
 
     @Test
     public void lazySingleton_registrationAndGet() {
-        Provider testProvider = Provider.createProvider(mockContext,
+        Provider testProvider = Provider.createNestedProvider("test",
+                null, mockContext,
                 new ProviderModule() {
                     @Override
                     public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
@@ -334,7 +347,8 @@ public class ProviderUnitTest {
      */
     @Test
     public void lazySingleton_executorService_registrationAndGet() {
-        Provider testProvider = Provider.createProvider(mockContext,
+        Provider testProvider = Provider.createNestedProvider("test",
+                null, mockContext,
                 new ProviderModule() {
                     @Override
                     public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
@@ -361,7 +375,8 @@ public class ProviderUnitTest {
          ServiceBImpl depends on IServiceA NOT the implementation.
          The provider support this inversion pattern by using LazySingletonProviderRegister
          */
-        Provider testProvider = Provider.createProvider(mockContext,
+        Provider testProvider = Provider.createNestedProvider("test",
+                null, mockContext,
                 new ProviderModule() {
                     @Override
                     public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
@@ -394,7 +409,8 @@ public class ProviderUnitTest {
         assertSame(serviceBFromProvider2.getIServiceA(), serviceAFromProvider1);
 
         // Another similar scenario, only get IServiceA first then get IServiceB
-        testProvider = Provider.createProvider(mockContext,
+        testProvider = Provider.createNestedProvider("test",
+                null, mockContext,
                 new ProviderModule() {
                     @Override
                     public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
@@ -432,7 +448,8 @@ public class ProviderUnitTest {
          ServiceBImpl depends on IServiceA NOT the implementation.
          The provider support this inversion pattern by using LazySingletonProviderRegister
          */
-        Provider testProvider = Provider.createProvider(mockContext,
+        Provider testProvider = Provider.createNestedProvider("test",
+                null, mockContext,
                 new ProviderModule() {
                     @Override
                     public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
@@ -465,7 +482,8 @@ public class ProviderUnitTest {
         assertSame(serviceBFromProvider2.getIServiceA(), serviceAFromProvider1);
 
         // Another similar scenario, only get IServiceA first then get IServiceB
-        testProvider = Provider.createProvider(mockContext,
+        testProvider = Provider.createNestedProvider("test",
+                null, mockContext,
                 new ProviderModule() {
                     @Override
                     public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
@@ -498,7 +516,8 @@ public class ProviderUnitTest {
 
     @Test
     public void factory_registrationAndGet() {
-        Provider testProvider = Provider.createProvider(mockContext,
+        Provider testProvider = Provider.createNestedProvider("test",
+                null, mockContext,
                 new ProviderModule() {
                     @Override
                     public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
@@ -565,7 +584,8 @@ public class ProviderUnitTest {
         };
         ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(1, 1, 30, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
         threadPoolExecutor.prestartAllCoreThreads();
-        Provider testProvider = new DefaultProvider(mockContext,
+        Provider testProvider = new DefaultNestedProvider("test",
+                null, mockContext,
                 providerModule, threadPoolExecutor);
         testProvider.dispose();
         threadPoolExecutor.shutdown();
@@ -615,7 +635,8 @@ public class ProviderUnitTest {
         };
         ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(1, 1, 30, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
         threadPoolExecutor.prestartAllCoreThreads();
-        Provider testProvider = new DefaultProvider(mockContext,
+        Provider testProvider = new DefaultNestedProvider("test",
+                null, mockContext,
                 providerModule, threadPoolExecutor);
         testProvider.get(DisposableRegisterService.class);
         testProvider.get(DisposableRegisterAsyncService.class);
@@ -653,5 +674,182 @@ public class ProviderUnitTest {
         // latest instance will trigger dispose
         Mockito.verify(disposableRegisterFactoryService2, Mockito.times(1))
                 .dispose(mockContext);
+    }
+
+    // -------------BELOW HERE ARE TEST SPECIFIC TO NESTED PROVIDER CASES WITH PARENT------------------
+    @Test
+    public void singletonParent_registrationAndExactGet() {
+        // testing real case scenario where you need both ExecutorService & ScheduledExecutorService
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+        Provider rootProvider = Provider.createProvider(mockContext, new ProviderModule() {
+            @Override
+            public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                providerRegistry.register(ScheduledExecutorService.class, scheduledExecutorService);
+            }
+
+            @Override
+            public void dispose(Context context, Provider provider) {
+                // nothing to dispose
+            }
+        });
+        Provider testProvider = Provider.createNestedProvider("test",
+                rootProvider, mockContext, new ProviderModule() {
+                    @Override
+                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                        providerRegistry.register(ExecutorService.class, executorService);
+                    }
+
+                    @Override
+                    public void dispose(Context context, Provider provider) {
+                        // nothing to dispose
+                    }
+                });
+
+        assertSame(testProvider.get(ExecutorService.class), executorService);
+        assertSame(testProvider.get(ScheduledExecutorService.class), scheduledExecutorService);
+        assertSame(testProvider.tryGet(ExecutorService.class), executorService);
+        assertSame(testProvider.tryGet(ScheduledExecutorService.class), scheduledExecutorService);
+        assertSame(testProvider.lazyGet(ExecutorService.class).get(), executorService);
+        assertSame(testProvider.lazyGet(ScheduledExecutorService.class).get(), scheduledExecutorService);
+        assertSame(testProvider.tryLazyGet(ExecutorService.class).get(), executorService);
+        assertSame(testProvider.tryLazyGet(ScheduledExecutorService.class).get(), scheduledExecutorService);
+    }
+
+    @Test
+    public void factoryParent_registrationAndExactGet() {
+        // testing real case scenario where you need both ExecutorService & ScheduledExecutorService
+        Provider rootProvider = Provider.createProvider(mockContext, new ProviderModule() {
+            @Override
+            public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                providerRegistry.registerFactory(IServiceA.class,
+                        () -> Mockito.mock(IServiceA.class));
+            }
+
+            @Override
+            public void dispose(Context context, Provider provider) {
+                // nothing to dispose
+            }
+        });
+        Provider testProvider = Provider.createNestedProvider("test",
+                rootProvider, mockContext, new ProviderModule() {
+                    @Override
+                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                        providerRegistry.registerFactory(IServiceB.class,
+                                () -> Mockito.mock(IServiceB.class));
+                    }
+
+                    @Override
+                    public void dispose(Context context, Provider provider) {
+                        // nothing to dispose
+                    }
+                });
+
+        IServiceA serviceA1 = testProvider.get(IServiceA.class);
+        IServiceA serviceA2 = testProvider.get(IServiceA.class);
+        assertNotSame(serviceA1, serviceA2);
+        IServiceB serviceB1 = testProvider.get(IServiceB.class);
+        IServiceB serviceB2 = testProvider.get(IServiceB.class);
+        assertNotSame(serviceB1, serviceB2);
+    }
+
+    @Test
+    public void singletonParent_registrationAndExactGet_withParentDependency() {
+        Provider rootProvider = Provider.createProvider(mockContext, new ProviderModule() {
+            @Override
+            public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                providerRegistry.registerLazy(IServiceA.class, ServiceAImpl::new);
+            }
+
+            @Override
+            public void dispose(Context context, Provider provider) {
+                // nothing to dispose
+            }
+        });
+        Provider testProvider = Provider.createNestedProvider("test",
+                rootProvider, mockContext, new ProviderModule() {
+                    @Override
+                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                        providerRegistry.registerLazy(IServiceB.class,
+                                () -> new ServiceBImpl(provider.get(IServiceA.class)));
+                    }
+
+                    @Override
+                    public void dispose(Context context, Provider provider) {
+                        // nothing to dispose
+                    }
+                });
+
+        IServiceB serviceB = testProvider.get(IServiceB.class);
+        IServiceA serviceA = testProvider.get(IServiceA.class);
+        assertNotNull(serviceA);
+        assertNotNull(serviceB);
+    }
+
+    @Test
+    public void singletonParent_registrationAndExactGet_withParentDependencyAndParentNestedProvider() {
+        Provider rootProvider = Provider.createNestedProvider("test", null,
+                mockContext, new ProviderModule() {
+                    @Override
+                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                        providerRegistry.registerLazy(IServiceA.class, ServiceAImpl::new);
+                    }
+
+                    @Override
+                    public void dispose(Context context, Provider provider) {
+                        // nothing to dispose
+                    }
+                });
+        Provider testProvider = Provider.createNestedProvider("test",
+                rootProvider, mockContext, new ProviderModule() {
+                    @Override
+                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                        providerRegistry.registerLazy(IServiceB.class,
+                                () -> new ServiceBImpl(provider.get(IServiceA.class)));
+                    }
+
+                    @Override
+                    public void dispose(Context context, Provider provider) {
+                        // nothing to dispose
+                    }
+                });
+
+        IServiceB serviceB = testProvider.get(IServiceB.class);
+        IServiceA serviceA = testProvider.get(IServiceA.class);
+        assertNotNull(serviceA);
+        assertNotNull(serviceB);
+    }
+
+    @Test
+    public void singletonParent_registerAsyncAndExactGet_withParentDependency() {
+        Provider rootProvider = Provider.createProvider(mockContext, new ProviderModule() {
+            @Override
+            public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                providerRegistry.registerAsync(IServiceA.class, ServiceAImpl::new);
+            }
+
+            @Override
+            public void dispose(Context context, Provider provider) {
+                // nothing to dispose
+            }
+        });
+        Provider testProvider = Provider.createNestedProvider("test",
+                rootProvider, mockContext, new ProviderModule() {
+                    @Override
+                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                        providerRegistry.registerAsync(IServiceB.class,
+                                () -> new ServiceBImpl(provider.get(IServiceA.class)));
+                    }
+
+                    @Override
+                    public void dispose(Context context, Provider provider) {
+                        // nothing to dispose
+                    }
+                });
+
+        IServiceB serviceB = testProvider.get(IServiceB.class);
+        IServiceA serviceA = testProvider.get(IServiceA.class);
+        assertNotNull(serviceA);
+        assertNotNull(serviceB);
     }
 }

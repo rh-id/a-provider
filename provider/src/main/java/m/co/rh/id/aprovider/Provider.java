@@ -6,8 +6,23 @@ import android.content.Context;
  * Main provider interface to provide components/services/objects
  */
 public interface Provider {
+    /**
+     * @param context    for this provider
+     * @param rootModule root for this provider
+     */
     static Provider createProvider(Context context, ProviderModule rootModule) {
         return new DefaultProvider(context, rootModule);
+    }
+
+    /**
+     * @param name           Provider name for debugging purposes
+     * @param parentProvider parent for this provider
+     * @param context        for this provider
+     * @param rootModule     root for this provider
+     * @return nested provider that will traverse up to parent provider if current provider doesn't have value
+     */
+    static Provider createNestedProvider(String name, Provider parentProvider, Context context, ProviderModule rootModule) {
+        return new DefaultNestedProvider(name, parentProvider, context, rootModule);
     }
 
     /**
