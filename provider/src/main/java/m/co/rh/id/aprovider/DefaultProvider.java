@@ -66,14 +66,14 @@ class DefaultProvider implements Provider, ProviderRegistry {
                 return processObject(entry.getValue());
             }
         }
-        throw new DefaultProviderNullPointerException(clazz.getName() + " not found");
+        throw new ProviderNullPointerException(clazz.getName() + " not found");
     }
 
     @Override
     public <I> I tryGet(Class<I> clazz) {
         try {
             return get(clazz);
-        } catch (DefaultProviderNullPointerException e) {
+        } catch (ProviderNullPointerException e) {
             // Leave blank, this means get return null, not the service itself throws null pointer
         } catch (Exception e) {
             Log.e(TAG, e.getMessage(), e);
@@ -96,7 +96,7 @@ class DefaultProvider implements Provider, ProviderRegistry {
                 }
             }
             if (!classFound) {
-                throw new DefaultProviderNullPointerException(clazz.getName() + " not found");
+                throw new ProviderNullPointerException(clazz.getName() + " not found");
             }
         }
         return () -> get(clazz);
@@ -176,7 +176,7 @@ class DefaultProvider implements Provider, ProviderRegistry {
         if (result != null) {
             return processObject(result);
         }
-        throw new DefaultProviderNullPointerException(clazz.getName() + " not found");
+        throw new ProviderNullPointerException(clazz.getName() + " not found");
     }
 
     private synchronized void checkDisposed() {
@@ -201,7 +201,7 @@ class DefaultProvider implements Provider, ProviderRegistry {
         I tryGetResult = null;
         try {
             tryGetResult = exactGet(clazz);
-        } catch (DefaultProviderNullPointerException e) {
+        } catch (ProviderNullPointerException e) {
             // leave blank
         }
         if (tryGetResult == null) {
@@ -217,12 +217,6 @@ class DefaultProvider implements Provider, ProviderRegistry {
                 lazyFutureProviderRegister.startLoad();
             }
             mAsyncRegisterList.clear();
-        }
-    }
-
-    private static class DefaultProviderNullPointerException extends NullPointerException {
-        public DefaultProviderNullPointerException(String message) {
-            super(message);
         }
     }
 }
