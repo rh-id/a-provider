@@ -1,5 +1,7 @@
 package m.co.rh.id.aprovider;
 
+import android.content.Context;
+
 /**
  * Provider registry to register modules/components/services
  */
@@ -46,10 +48,10 @@ public interface ProviderRegistry {
 
     /**
      * Register as factory for components/services object.
-     * new instance will always be returned by using ProviderValue as factory/producer.
+     * new instance will always be returned by using {@link ProviderValue} as factory/producer.
      * <p>
      * if an object is produced by this factory and is implementing {@link ProviderDisposable}
-     * then ProviderDisposable.dispose will be invoked on previous object
+     * then {@link ProviderDisposable#dispose(Context)} will be invoked on previous object
      * instantiated by this factory before returning new instance.
      *
      * @param <I>           type of the object/service
@@ -57,4 +59,19 @@ public interface ProviderRegistry {
      * @param providerValue getter value that acts as producer of new instance
      */
     <I> void registerFactory(Class<I> clazz, ProviderValue<I> providerValue);
+
+    /**
+     * Register as pool for components/services object.
+     * new instance will always be returned by using {@link ProviderValue} as factory/producer.
+     * <p>
+     * Almost the same as {@link #registerFactory(Class, ProviderValue)},
+     * the difference is that {@link ProviderDisposable#dispose(Context)} will NOT be invoked on previous object instantiated by this.
+     * {@link ProviderDisposable#dispose(Context)} will be invoked to ALL INSTANCE at once
+     * only when Provider.dispose is invoked.
+     *
+     * @param <I>           type of the object/service
+     * @param clazz         the class of the service, usually interface
+     * @param providerValue getter value that acts as producer of new instance
+     */
+    <I> void registerPool(Class<I> clazz, ProviderValue<I> providerValue);
 }

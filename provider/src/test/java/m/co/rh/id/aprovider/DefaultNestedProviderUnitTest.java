@@ -39,6 +39,7 @@ import m.co.rh.id.aprovider.test.ServiceBImpl;
 import m.co.rh.id.aprovider.test.disposable.DisposableRegisterAsyncService;
 import m.co.rh.id.aprovider.test.disposable.DisposableRegisterFactoryService;
 import m.co.rh.id.aprovider.test.disposable.DisposableRegisterLazyService;
+import m.co.rh.id.aprovider.test.disposable.DisposableRegisterPoolService;
 import m.co.rh.id.aprovider.test.disposable.DisposableRegisterService;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -554,6 +555,7 @@ public class DefaultNestedProviderUnitTest {
         DisposableRegisterService registerService = Mockito.mock(DisposableRegisterService.class);
         DisposableRegisterAsyncService registerAsyncService = Mockito.mock(DisposableRegisterAsyncService.class);
         DisposableRegisterFactoryService registerFactoryService = Mockito.mock(DisposableRegisterFactoryService.class);
+        DisposableRegisterPoolService registerPoolService = Mockito.mock(DisposableRegisterPoolService.class);
         DisposableRegisterLazyService registerLazyService = Mockito.mock(DisposableRegisterLazyService.class);
         ProviderModule providerModule = new ProviderModule() {
             @Override
@@ -571,6 +573,10 @@ public class DefaultNestedProviderUnitTest {
                         DisposableRegisterFactoryService.class,
                         () -> registerFactoryService
                 );
+                // Register pool always return same instance for testing purposes
+                // dispose should not be called since "get" is not called
+                providerRegistry.registerPool(DisposableRegisterPoolService.class,
+                        () -> registerPoolService);
                 providerRegistry.registerLazy(
                         DisposableRegisterLazyService.class,
                         () -> registerLazyService
@@ -589,13 +595,15 @@ public class DefaultNestedProviderUnitTest {
                 providerModule, threadPoolExecutor);
         testProvider.dispose();
         threadPoolExecutor.shutdown();
-        threadPoolExecutor.awaitTermination(5, TimeUnit.SECONDS);
+        threadPoolExecutor.awaitTermination(1, TimeUnit.SECONDS);
 
         Mockito.verify(registerService, Mockito.times(1))
                 .dispose(eq(mockContext));
         Mockito.verify(registerAsyncService, Mockito.times(1))
                 .dispose(eq(mockContext));
         Mockito.verify(registerFactoryService, Mockito.never())
+                .dispose(eq(mockContext));
+        Mockito.verify(registerPoolService, Mockito.never())
                 .dispose(eq(mockContext));
         // Since we didn't try to "Provider.get"
         // it should not be disposed since the instance was never instantiated
@@ -621,6 +629,10 @@ public class DefaultNestedProviderUnitTest {
                 providerRegistry.registerFactory(
                         DisposableRegisterFactoryService.class,
                         () -> Mockito.mock(DisposableRegisterFactoryService.class)
+                );
+                providerRegistry.registerPool(
+                        DisposableRegisterPoolService.class,
+                        () -> Mockito.mock(DisposableRegisterPoolService.class)
                 );
                 providerRegistry.registerLazy(
                         DisposableRegisterLazyService.class,
@@ -657,9 +669,25 @@ public class DefaultNestedProviderUnitTest {
         Mockito.verify(disposableRegisterFactoryService2, Mockito.never())
                 .dispose(mockContext);
 
+        // test pool before dispose
+        DisposableRegisterPoolService disposableRegisterPoolService1 =
+                testProvider.get(DisposableRegisterPoolService.class);
+        Mockito.verify(disposableRegisterPoolService1, Mockito.never()).dispose(mockContext);
+
+        DisposableRegisterPoolService disposableRegisterPoolService2 =
+                testProvider.get(DisposableRegisterPoolService.class);
+        Mockito.verify(disposableRegisterPoolService2, Mockito.never()).dispose(mockContext);
+        assertNotSame(disposableRegisterPoolService1, disposableRegisterPoolService2);
+
+        // after new instance is created, previous instance should NOT trigger dispose
+        Mockito.verify(disposableRegisterPoolService1, Mockito.never())
+                .dispose(mockContext);
+        Mockito.verify(disposableRegisterPoolService2, Mockito.never())
+                .dispose(mockContext);
+
         testProvider.dispose();
+        threadPoolExecutor.awaitTermination(10, TimeUnit.MILLISECONDS);
         threadPoolExecutor.shutdown();
-        threadPoolExecutor.awaitTermination(5, TimeUnit.SECONDS);
 
         Mockito.verify(registerService, Mockito.times(1))
                 .dispose(eq(mockContext));
@@ -673,6 +701,12 @@ public class DefaultNestedProviderUnitTest {
                 .dispose(mockContext);
         // latest instance will trigger dispose
         Mockito.verify(disposableRegisterFactoryService2, Mockito.times(1))
+                .dispose(mockContext);
+
+        // for pool services, dispose should be triggered after call dispose for all instances
+        Mockito.verify(disposableRegisterPoolService1, Mockito.times(1))
+                .dispose(mockContext);
+        Mockito.verify(disposableRegisterPoolService2, Mockito.times(1))
                 .dispose(mockContext);
     }
 

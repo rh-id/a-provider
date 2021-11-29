@@ -5,7 +5,7 @@ import android.content.Context;
 import m.co.rh.id.aprovider.ProviderDisposable;
 
 /**
- * Test class, use Provider.registerFactory to register this class
+ * Test class, use ProviderRegistry.registerFactory to register this class
  */
 public class DisposableRegisterFactoryService implements ProviderDisposable {
     @Override

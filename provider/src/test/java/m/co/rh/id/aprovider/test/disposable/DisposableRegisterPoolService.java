@@ -5,9 +5,9 @@ import android.content.Context;
 import m.co.rh.id.aprovider.ProviderDisposable;
 
 /**
- * Test class, use ProviderRegistry.register to register this class
+ * Test class, use ProviderRegistry.registerPool to register this class
  */
-public class DisposableRegisterService implements ProviderDisposable {
+public class DisposableRegisterPoolService implements ProviderDisposable {
     @Override
     public void dispose(Context context) {
         // leave blank, use mock to check if this is called or not

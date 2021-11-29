@@ -182,6 +182,11 @@ class DefaultProvider implements Provider, ProviderRegistry {
         register(new FactoryProviderRegister<>(clazz, providerValue, mContext));
     }
 
+    @Override
+    public <I> void registerPool(Class<I> clazz, ProviderValue<I> providerValue) {
+        register(new PoolProviderRegister<>(clazz, providerValue, mThreadPoolExecutor));
+    }
+
     private <I> I exactGet(Class<I> clazz) {
         Object result = mObjectMap.get(clazz);
         if (result != null) {
