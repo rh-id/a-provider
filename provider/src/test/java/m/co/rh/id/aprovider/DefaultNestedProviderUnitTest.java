@@ -852,4 +852,40 @@ public class DefaultNestedProviderUnitTest {
         assertNotNull(serviceA);
         assertNotNull(serviceB);
     }
+
+    @Test
+    public void singletonParent_registerAndExactGet_withParentDependencyAndChildInvokeGet() {
+        Provider rootProvider = Provider.createProvider(mockContext, new ProviderModule() {
+            @Override
+            public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                providerRegistry.register(IServiceA.class, ServiceAImpl::new);
+            }
+
+            @Override
+            public void dispose(Context context, Provider provider) {
+                // nothing to dispose
+            }
+        });
+        Provider testProvider = Provider.createNestedProvider("test",
+                rootProvider, mockContext, new ProviderModule() {
+                    @Override
+                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                        // test get value here,
+                        // should contain value from parent
+                        IServiceA iServiceA = provider.get(IServiceA.class);
+                        providerRegistry.registerAsync(IServiceB.class,
+                                () -> new ServiceBImpl(iServiceA));
+                    }
+
+                    @Override
+                    public void dispose(Context context, Provider provider) {
+                        // nothing to dispose
+                    }
+                });
+
+        IServiceB serviceB = testProvider.get(IServiceB.class);
+        IServiceA serviceA = testProvider.get(IServiceA.class);
+        assertNotNull(serviceA);
+        assertNotNull(serviceB);
+    }
 }

@@ -35,6 +35,7 @@ class DefaultProvider implements Provider, ProviderRegistry {
     private List<ProviderModule> mModuleList;
     private List<LazyFutureProviderRegister> mAsyncRegisterList;
     private ThreadPoolExecutor mThreadPoolExecutor;
+    private ProviderModule mRootModule;
     private boolean mIsDisposed;
 
     DefaultProvider(Context context, ProviderModule rootModule) {
@@ -56,7 +57,7 @@ class DefaultProvider implements Provider, ProviderRegistry {
         mModuleList = Collections.synchronizedList(new ArrayList<>());
         mAsyncRegisterList = Collections.synchronizedList(new ArrayList<>());
         mThreadPoolExecutor = threadPoolExecutor;
-        registerModule(rootModule);
+        mRootModule = rootModule;
         if (autoStart) {
             start();
         }
@@ -147,6 +148,7 @@ class DefaultProvider implements Provider, ProviderRegistry {
         mAsyncRegisterList.clear();
         mAsyncRegisterList = null;
         mThreadPoolExecutor = null;
+        mRootModule = null;
         mContext = null;
     }
 
@@ -221,6 +223,7 @@ class DefaultProvider implements Provider, ProviderRegistry {
     }
 
     void start() {
+        registerModule(mRootModule);
         if (!mAsyncRegisterList.isEmpty()) {
             for (LazyFutureProviderRegister lazyFutureProviderRegister : mAsyncRegisterList) {
                 lazyFutureProviderRegister.startLoad();
