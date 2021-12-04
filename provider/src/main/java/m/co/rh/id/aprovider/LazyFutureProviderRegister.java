@@ -13,49 +13,58 @@ class LazyFutureProviderRegister<I> extends ProviderRegister<I> implements Provi
     private static final String TAG = "FutureProvider";
     private Future<I> mFutureValue;
     private ThreadPoolExecutor mThreadPoolExecutor;
+    private SyncWorkStealingWorker mSyncWorkStealingWorker;
 
     public LazyFutureProviderRegister(Class<I> type, ProviderValue<I> providerValue, ThreadPoolExecutor executorService) {
         super(type, providerValue);
         mThreadPoolExecutor = executorService;
+        mSyncWorkStealingWorker = new SyncWorkStealingWorker(mThreadPoolExecutor);
     }
 
     @Override
-    public synchronized I get() {
-        startLoad();
-        try {
-            while (!mFutureValue.isDone()) {
-                // try to run next task to avoid deadlock due to limited thread size
-                Runnable nextTask = mThreadPoolExecutor.getQueue().poll();
-                if (nextTask != null) {
-                    nextTask.run();
-                }
-            }
-            return mFutureValue.get();
-        } catch (Exception e) {
-            Log.e(TAG, getType().getName() + " throws exception with message: " + e.getMessage());
-            throw new RuntimeException(e);
-        }
-    }
-
-    public synchronized void startLoad() {
-        if (mFutureValue == null) {
-            mFutureValue = mThreadPoolExecutor.submit(() -> getProviderValue().get());
-        }
-    }
-
-    @Override
-    public synchronized void dispose(Context context) {
-        if (mFutureValue != null) {
+    public I get() {
+        return mSyncWorkStealingWorker.submit(() -> {
+            startLoad();
             try {
-                I i = mFutureValue.get();
-                if (i instanceof ProviderDisposable) {
-                    ((ProviderDisposable) i).dispose(context);
+                while (!mFutureValue.isDone()) {
+                    // try to run next task to avoid deadlock due to limited thread size
+                    Runnable nextTask = mThreadPoolExecutor.getQueue().poll();
+                    if (nextTask != null) {
+                        nextTask.run();
+                    }
                 }
+                return mFutureValue.get();
             } catch (Exception e) {
-                Log.e(TAG, getType().getName() + " failed to dispose: " + e.getMessage());
+                Log.e(TAG, getType().getName() + " throws exception with message: " + e.getMessage());
+                throw new RuntimeException(e);
             }
-        }
-        mFutureValue = null;
-        mThreadPoolExecutor = null;
+        });
+    }
+
+    public void startLoad() {
+        mSyncWorkStealingWorker.execute(() -> {
+            if (mFutureValue == null) {
+                mFutureValue = mThreadPoolExecutor.submit(() -> getProviderValue().get());
+            }
+        });
+    }
+
+    @Override
+    public void dispose(Context context) {
+        mSyncWorkStealingWorker.execute(() -> {
+            if (mFutureValue != null) {
+                try {
+                    I i = mFutureValue.get();
+                    if (i instanceof ProviderDisposable) {
+                        ((ProviderDisposable) i).dispose(context);
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, getType().getName() + " failed to dispose: " + e.getMessage());
+                }
+            }
+            mFutureValue = null;
+            mThreadPoolExecutor = null;
+            mSyncWorkStealingWorker = null;
+        });
     }
 }

@@ -167,7 +167,7 @@ class DefaultProvider implements Provider, ProviderRegistry {
 
     @Override
     public <I> void registerLazy(Class<I> clazz, ProviderValue<I> providerValue) {
-        register(new LazySingletonProviderRegister<>(clazz, providerValue));
+        register(new LazySingletonProviderRegister<>(clazz, providerValue, mThreadPoolExecutor));
     }
 
     @Override
@@ -179,7 +179,7 @@ class DefaultProvider implements Provider, ProviderRegistry {
 
     @Override
     public <I> void registerFactory(Class<I> clazz, ProviderValue<I> providerValue) {
-        register(new FactoryProviderRegister<>(clazz, providerValue, mContext));
+        register(new FactoryProviderRegister<>(clazz, providerValue, mContext, mThreadPoolExecutor));
     }
 
     @Override

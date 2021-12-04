@@ -4,7 +4,7 @@ import android.content.Context;
 import android.util.Log;
 
 import java.util.LinkedList;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * Helper class to register pool
@@ -12,37 +12,44 @@ import java.util.concurrent.ExecutorService;
 class PoolProviderRegister<I> extends ProviderRegister<I> implements ProviderDisposable {
     private static final String TAG = "PoolProvider";
 
-    private ExecutorService mExecutorService;
+    private ThreadPoolExecutor mThreadPool;
     private LinkedList<I> mPreviousValues;
+    private SyncWorkStealingWorker mSyncWorkStealingWorker;
 
-    public PoolProviderRegister(Class<I> type, ProviderValue<I> providerValue, ExecutorService executorService) {
+    public PoolProviderRegister(Class<I> type, ProviderValue<I> providerValue, ThreadPoolExecutor threadPoolExecutor) {
         super(type, providerValue);
-        mExecutorService = executorService;
+        mThreadPool = threadPoolExecutor;
         mPreviousValues = new LinkedList<>();
+        mSyncWorkStealingWorker = new SyncWorkStealingWorker(threadPoolExecutor);
     }
 
     @Override
-    public synchronized I get() {
-        I previousVal = getProviderValue().get();
-        mPreviousValues.add(previousVal);
-        return previousVal;
+    public I get() {
+        return mSyncWorkStealingWorker.submit(() -> {
+            I previousVal = getProviderValue().get();
+            mPreviousValues.add(previousVal);
+            return previousVal;
+        });
     }
 
     @Override
-    public synchronized void dispose(Context context) {
-        while (!mPreviousValues.isEmpty()) {
-            I prevValue = mPreviousValues.pop();
-            if (prevValue instanceof ProviderDisposable) {
-                mExecutorService.execute(() -> {
-                    try {
-                        ((ProviderDisposable) prevValue).dispose(context);
-                    } catch (Exception e) {
-                        Log.e(TAG, getType().getName() + " failed to dispose: " + e.getMessage());
-                    }
-                });
+    public void dispose(Context context) {
+        mSyncWorkStealingWorker.execute(() -> {
+            while (!mPreviousValues.isEmpty()) {
+                I prevValue = mPreviousValues.pop();
+                if (prevValue instanceof ProviderDisposable) {
+                    mThreadPool.execute(() -> {
+                        try {
+                            ((ProviderDisposable) prevValue).dispose(context);
+                        } catch (Exception e) {
+                            Log.e(TAG, getType().getName() + " failed to dispose: " + e.getMessage());
+                        }
+                    });
+                }
             }
-        }
-        mPreviousValues = null;
-        mExecutorService = null;
+            mPreviousValues = null;
+            mThreadPool = null;
+            mSyncWorkStealingWorker = null;
+        });
     }
 }
