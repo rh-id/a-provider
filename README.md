@@ -7,7 +7,7 @@ This is a simple Service Locator for Android projects that doesn't rely on annot
 
 
 ## Example Usage
-For example production app see ![a-news-provider](https://github.com/rh-id/a-news-provider)
+For example production app see ![a-news-provider](https://github.com/rh-id/a-news-provider) and  ![a-flash-deck](https://github.com/rh-id/a-flash-deck)
 
 This project support jitpack, in order to use this, you need to add jitpack to your project root build.gradle:
 ```
