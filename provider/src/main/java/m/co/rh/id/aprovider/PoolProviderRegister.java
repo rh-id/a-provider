@@ -3,6 +3,7 @@ package m.co.rh.id.aprovider;
 import android.content.Context;
 import android.util.Log;
 
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -28,7 +29,24 @@ class PoolProviderRegister<I> extends ProviderRegister<I> implements ProviderDis
         return mSyncWorkStealingWorker.submit(() -> {
             I previousVal = getProviderValue().get();
             mPreviousValues.add(previousVal);
+            checkAndRemoveDisposedObjects();
             return previousVal;
+        });
+    }
+
+    private void checkAndRemoveDisposedObjects() {
+        mThreadPool.execute(() -> {
+            if (!mPreviousValues.isEmpty()) {
+                for (Iterator<I> iterator = mPreviousValues.iterator();
+                     iterator.hasNext(); ) {
+                    I prevVal = iterator.next();
+                    if (prevVal instanceof ProviderIsDisposed) {
+                        if (((ProviderIsDisposed) prevVal).isDisposed()) {
+                            iterator.remove();
+                        }
+                    }
+                }
+            }
         });
     }
 
