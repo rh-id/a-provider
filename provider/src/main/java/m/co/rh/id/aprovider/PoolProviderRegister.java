@@ -4,7 +4,7 @@ import android.content.Context;
 import android.util.Log;
 
 import java.util.Iterator;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.LinkedList;
 import java.util.concurrent.ThreadPoolExecutor;
 
 /**
@@ -14,13 +14,13 @@ class PoolProviderRegister<I> extends ProviderRegister<I> implements ProviderDis
     private static final String TAG = "PoolProvider";
 
     private ThreadPoolExecutor mThreadPool;
-    private CopyOnWriteArrayList<I> mPreviousValues;
+    private LinkedList<I> mPreviousValues;
     private SyncWorkStealingWorker mSyncWorkStealingWorker;
 
     public PoolProviderRegister(Class<I> type, ProviderValue<I> providerValue, ThreadPoolExecutor threadPoolExecutor) {
         super(type, providerValue);
         mThreadPool = threadPoolExecutor;
-        mPreviousValues = new CopyOnWriteArrayList<>();
+        mPreviousValues = new LinkedList<>();
         mSyncWorkStealingWorker = new SyncWorkStealingWorker(threadPoolExecutor);
     }
 
@@ -35,26 +35,24 @@ class PoolProviderRegister<I> extends ProviderRegister<I> implements ProviderDis
     }
 
     private void checkAndRemoveDisposedObjects() {
-        mThreadPool.execute(() -> {
-            if (!mPreviousValues.isEmpty()) {
-                for (Iterator<I> iterator = mPreviousValues.iterator();
-                     iterator.hasNext(); ) {
-                    I prevVal = iterator.next();
-                    if (prevVal instanceof ProviderIsDisposed) {
-                        if (((ProviderIsDisposed) prevVal).isDisposed()) {
-                            iterator.remove();
-                        }
+        if (!mPreviousValues.isEmpty()) {
+            for (Iterator<I> iterator = mPreviousValues.iterator();
+                 iterator.hasNext(); ) {
+                I prevVal = iterator.next();
+                if (prevVal instanceof ProviderIsDisposed) {
+                    if (((ProviderIsDisposed) prevVal).isDisposed()) {
+                        iterator.remove();
                     }
                 }
             }
-        });
+        }
     }
 
     @Override
     public void dispose(Context context) {
         mSyncWorkStealingWorker.execute(() -> {
             while (!mPreviousValues.isEmpty()) {
-                I prevValue = mPreviousValues.remove(0);
+                I prevValue = mPreviousValues.pop();
                 if (prevValue instanceof ProviderDisposable) {
                     mThreadPool.execute(() -> {
                         try {
