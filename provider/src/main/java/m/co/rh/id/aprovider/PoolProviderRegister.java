@@ -4,7 +4,7 @@ import android.content.Context;
 import android.util.Log;
 
 import java.util.Iterator;
-import java.util.LinkedList;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ThreadPoolExecutor;
 
 /**
@@ -14,13 +14,13 @@ class PoolProviderRegister<I> extends ProviderRegister<I> implements ProviderDis
     private static final String TAG = "PoolProvider";
 
     private ThreadPoolExecutor mThreadPool;
-    private LinkedList<I> mPreviousValues;
+    private CopyOnWriteArrayList<I> mPreviousValues;
     private SyncWorkStealingWorker mSyncWorkStealingWorker;
 
     public PoolProviderRegister(Class<I> type, ProviderValue<I> providerValue, ThreadPoolExecutor threadPoolExecutor) {
         super(type, providerValue);
         mThreadPool = threadPoolExecutor;
-        mPreviousValues = new LinkedList<>();
+        mPreviousValues = new CopyOnWriteArrayList<>();
         mSyncWorkStealingWorker = new SyncWorkStealingWorker(threadPoolExecutor);
     }
 
@@ -54,7 +54,7 @@ class PoolProviderRegister<I> extends ProviderRegister<I> implements ProviderDis
     public void dispose(Context context) {
         mSyncWorkStealingWorker.execute(() -> {
             while (!mPreviousValues.isEmpty()) {
-                I prevValue = mPreviousValues.pop();
+                I prevValue = mPreviousValues.remove(0);
                 if (prevValue instanceof ProviderDisposable) {
                     mThreadPool.execute(() -> {
                         try {
