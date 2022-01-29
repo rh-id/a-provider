@@ -1,8 +1,8 @@
 # a-provider
 
 ![JitPack](https://img.shields.io/jitpack/v/github/rh-id/a-provider)
-![Downloads](https://jitpack.io/v/rh-id/a-navigator/week.svg)
-![Downloads](https://jitpack.io/v/rh-id/a-navigator/month.svg)
+![Downloads](https://jitpack.io/v/rh-id/a-provider/week.svg)
+![Downloads](https://jitpack.io/v/rh-id/a-provider/month.svg)
 ![Android CI](https://github.com/rh-id/a-provider/actions/workflows/gradlew-build.yml/badge.svg)
 
 This is a simple Service Locator for Android projects that doesn't rely on annotations or "magic"
