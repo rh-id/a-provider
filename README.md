@@ -9,7 +9,6 @@ This is a simple Service Locator for Android projects that doesn't rely on annot
 
 
 ## Example Usage
-For example production app see ![a-news-provider](https://github.com/rh-id/a-news-provider) and  ![a-flash-deck](https://github.com/rh-id/a-flash-deck)
 
 This project support jitpack, in order to use this, you need to add jitpack to your project root build.gradle:
 ```
@@ -96,6 +95,13 @@ public class MyApplication extends Application {
     }
 }
 ```
+
+## Example Projects
+<ul>
+<li>https://github.com/rh-id/a-news-provider</li>
+<li>https://github.com/rh-id/a-flash-deck</li>
+<li>https://github.com/rh-id/a-medic-log</li>
+</ul>
 
 ## Support this project
 ![Bitcoin](https://img.shields.io/badge/Bitcoin-000000?style=for-the-badge&logo=bitcoin&logoColor=white&link=bitcoin://bc1qk9n2kljqyunqvlpyjxd4f4tt2xl0uwt2ak9xu4)
