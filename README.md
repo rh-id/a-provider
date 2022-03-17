@@ -51,6 +51,13 @@ public class RootModule implements ProviderModule{
             myPojo.setName("Foo");
             return myPojo;
         });
+        // OR use registerPool to load new instances everytime Provider.get() is invoked.
+        providerRegistry.registerPool(MyPojo.class, () -> {
+            MyPojo myPojo = new MyPojo();
+            myPojo.setAge(99);
+            myPojo.setName("Foo");
+            return myPojo;
+        });
     }
 
     @Override
