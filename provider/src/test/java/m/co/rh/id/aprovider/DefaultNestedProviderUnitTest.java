@@ -548,6 +548,75 @@ public class DefaultNestedProviderUnitTest {
         // because same factory,
         // both have same value and might be equals but not same instance
         assertNotSame(myPojo1, myPojo2);
+
+        // Lazy get should only call get once from factory not multiple times
+        ProviderValue<MyPojo> myPojoLazyGet1Provider = testProvider.lazyGet(MyPojo.class);
+        MyPojo myPojoLazyGet1 = myPojoLazyGet1Provider.get();
+        MyPojo myPojoLazyGet1_1 = myPojoLazyGet1Provider.get();
+        assertSame(myPojoLazyGet1, myPojoLazyGet1_1);
+        ProviderValue<MyPojo> myPojoLazyGet2Provider = testProvider.lazyGet(MyPojo.class);
+        MyPojo myPojoLazyGet2 = myPojoLazyGet2Provider.get();
+        assertNotSame(myPojoLazyGet1, myPojoLazyGet2);
+
+        ProviderValue<MyPojo> myPojoTryLazyGet1Provider = testProvider.tryLazyGet(MyPojo.class);
+        MyPojo myPojoTryLazyGet1 = myPojoTryLazyGet1Provider.get();
+        MyPojo myPojoTryLazyGet1_1 = myPojoTryLazyGet1Provider.get();
+        assertSame(myPojoTryLazyGet1, myPojoTryLazyGet1_1);
+        ProviderValue<MyPojo> myPojoTryLazyGet2Provider = testProvider.tryLazyGet(MyPojo.class);
+        MyPojo myPojoTryLazyGet2 = myPojoTryLazyGet2Provider.get();
+        assertNotSame(myPojoTryLazyGet1, myPojoTryLazyGet2);
+    }
+
+    // should behave exactly the same as registerFactory, the difference is only at disposable logic
+    @Test
+    public void pool_registrationAndGet() {
+        Provider testProvider = Provider.createProvider(mockContext,
+                new ProviderModule() {
+                    @Override
+                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                        providerRegistry.registerPool(MyPojo.class, () -> {
+                            MyPojo myPojo = new MyPojo();
+                            myPojo.setAge(99);
+                            myPojo.setName("Foo");
+                            return myPojo;
+                        });
+                    }
+
+                    @Override
+                    public void dispose(Context context, Provider provider) {
+                        // leave blank
+                    }
+                });
+        MyPojo myPojo1 = testProvider.get(MyPojo.class);
+        assertNotNull(myPojo1);
+        assertEquals(myPojo1.getAge(), 99);
+        assertEquals(myPojo1.getName(), "Foo");
+
+        MyPojo myPojo2 = testProvider.get(MyPojo.class);
+        assertNotNull(myPojo2);
+        assertEquals(myPojo2.getAge(), myPojo1.getAge());
+        assertEquals(myPojo2.getName(), myPojo1.getName());
+
+        // because same factory,
+        // both have same value and might be equals but not same instance
+        assertNotSame(myPojo1, myPojo2);
+
+        // Lazy get should only call get once from factory not multiple times
+        ProviderValue<MyPojo> myPojoLazyGet1Provider = testProvider.lazyGet(MyPojo.class);
+        MyPojo myPojoLazyGet1 = myPojoLazyGet1Provider.get();
+        MyPojo myPojoLazyGet1_1 = myPojoLazyGet1Provider.get();
+        assertSame(myPojoLazyGet1, myPojoLazyGet1_1);
+        ProviderValue<MyPojo> myPojoLazyGet2Provider = testProvider.lazyGet(MyPojo.class);
+        MyPojo myPojoLazyGet2 = myPojoLazyGet2Provider.get();
+        assertNotSame(myPojoLazyGet1, myPojoLazyGet2);
+
+        ProviderValue<MyPojo> myPojoTryLazyGet1Provider = testProvider.tryLazyGet(MyPojo.class);
+        MyPojo myPojoTryLazyGet1 = myPojoTryLazyGet1Provider.get();
+        MyPojo myPojoTryLazyGet1_1 = myPojoTryLazyGet1Provider.get();
+        assertSame(myPojoTryLazyGet1, myPojoTryLazyGet1_1);
+        ProviderValue<MyPojo> myPojoTryLazyGet2Provider = testProvider.tryLazyGet(MyPojo.class);
+        MyPojo myPojoTryLazyGet2 = myPojoTryLazyGet2Provider.get();
+        assertNotSame(myPojoTryLazyGet1, myPojoTryLazyGet2);
     }
 
     @Test

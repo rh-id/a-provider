@@ -109,12 +109,12 @@ class DefaultProvider implements Provider, ProviderRegistry {
                 throw new ProviderNullPointerException(clazz.getName() + " not found");
             }
         }
-        return () -> get(clazz);
+        return new CachedProviderValue<>(() -> get(clazz));
     }
 
     @Override
     public <I> ProviderValue<I> tryLazyGet(Class<I> clazz) {
-        return () -> tryGet(clazz);
+        return new CachedProviderValue<>(() -> tryGet(clazz));
     }
 
     @Override
