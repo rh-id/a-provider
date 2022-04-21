@@ -57,12 +57,12 @@ public class DefaultNestedProviderUnitTest {
         Provider testProvider = Provider.createNestedProvider("test",
                 null, mockContext, new ProviderModule() {
                     @Override
-                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
                         // leave blank
                     }
 
                     @Override
-                    public void dispose(Context context, Provider provider) {
+                    public void dispose(Provider provider) {
                         // nothing to dispose
                     }
                 });
@@ -80,13 +80,13 @@ public class DefaultNestedProviderUnitTest {
         Provider testProvider = Provider.createNestedProvider("test",
                 null, mockContext, new ProviderModule() {
                     @Override
-                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
                         providerRegistry.register(ScheduledExecutorService.class, scheduledExecutorService);
                         providerRegistry.register(ExecutorService.class, executorService);
                     }
 
                     @Override
-                    public void dispose(Context context, Provider provider) {
+                    public void dispose(Provider provider) {
                         // nothing to dispose
                     }
                 });
@@ -107,12 +107,12 @@ public class DefaultNestedProviderUnitTest {
         Provider testProvider = Provider.createNestedProvider("test",
                 null, mockContext, new ProviderModule() {
                     @Override
-                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
                         providerRegistry.register(IServiceA.class, serviceA);
                     }
 
                     @Override
-                    public void dispose(Context context, Provider provider) {
+                    public void dispose(Provider provider) {
                         // nothing to dispose
                     }
                 });
@@ -141,12 +141,12 @@ public class DefaultNestedProviderUnitTest {
         Provider testProvider = Provider.createNestedProvider("test",
                 null, mockContext, new ProviderModule() {
                     @Override
-                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
                         providerRegistry.register(IServiceA.class, serviceA);
                     }
 
                     @Override
-                    public void dispose(Context context, Provider provider) {
+                    public void dispose(Provider provider) {
                         // nothing to dispose
                     }
                 });
@@ -179,12 +179,12 @@ public class DefaultNestedProviderUnitTest {
                 Provider.createNestedProvider("test",
                         null, mockContext, new ProviderModule() {
                             @Override
-                            public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                            public void provides(ProviderRegistry providerRegistry, Provider provider) {
                                 // leave blank
                             }
 
                             @Override
-                            public void dispose(Context context, Provider provider) {
+                            public void dispose(Provider provider) {
                                 // nothing to dispose
                             }
                         });
@@ -215,13 +215,13 @@ public class DefaultNestedProviderUnitTest {
         Provider.createNestedProvider("test",
                 null, mockContext, new ProviderModule() {
                     @Override
-                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
                         providerRegistry.register(IServiceA.class, serviceA);
                         providerRegistry.register(IServiceA.class, new ServiceAImpl());
                     }
 
                     @Override
-                    public void dispose(Context context, Provider provider) {
+                    public void dispose(Provider provider) {
                         // leave blank
                     }
                 });
@@ -233,12 +233,12 @@ public class DefaultNestedProviderUnitTest {
                 null, mockContext,
                 new ProviderModule() {
                     @Override
-                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
                         providerRegistry.registerModule(new ModuleA());
                     }
 
                     @Override
-                    public void dispose(Context context, Provider provider) {
+                    public void dispose(Provider provider) {
 
                     }
                 });
@@ -268,13 +268,13 @@ public class DefaultNestedProviderUnitTest {
                 null, mockContext,
                 new ProviderModule() {
                     @Override
-                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
                         providerRegistry.registerModule(new ModuleA());
                         providerRegistry.registerModule(new ModuleA());
                     }
 
                     @Override
-                    public void dispose(Context context, Provider provider) {
+                    public void dispose(Provider provider) {
                         // leave blank
                     }
                 });
@@ -296,12 +296,12 @@ public class DefaultNestedProviderUnitTest {
                 null, mockContext,
                 new ProviderModule() {
                     @Override
-                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
                         providerRegistry.registerModule(registerModuleA);
                     }
 
                     @Override
-                    public void dispose(Context context, Provider provider) {
+                    public void dispose(Provider provider) {
                         // leave blank
                     }
                 });
@@ -316,13 +316,13 @@ public class DefaultNestedProviderUnitTest {
                 null, mockContext,
                 new ProviderModule() {
                     @Override
-                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
                         providerRegistry.registerLazy(
                                 IServiceA.class, ServiceAImpl::new);
                     }
 
                     @Override
-                    public void dispose(Context context, Provider provider) {
+                    public void dispose(Provider provider) {
                         // leave blank
                     }
                 });
@@ -352,13 +352,13 @@ public class DefaultNestedProviderUnitTest {
                 null, mockContext,
                 new ProviderModule() {
                     @Override
-                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
                         providerRegistry.registerLazy(
                                 ExecutorService.class, Executors::newSingleThreadExecutor);
                     }
 
                     @Override
-                    public void dispose(Context context, Provider provider) {
+                    public void dispose(Provider provider) {
                         // leave blank
                     }
                 });
@@ -380,7 +380,7 @@ public class DefaultNestedProviderUnitTest {
                 null, mockContext,
                 new ProviderModule() {
                     @Override
-                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
                         providerRegistry.registerLazy(
                                 IServiceB.class,
                                 () -> new ServiceBImpl(provider.get(IServiceA.class)));
@@ -389,7 +389,7 @@ public class DefaultNestedProviderUnitTest {
                     }
 
                     @Override
-                    public void dispose(Context context, Provider provider) {
+                    public void dispose(Provider provider) {
                         // leave blank
                     }
                 });
@@ -414,7 +414,7 @@ public class DefaultNestedProviderUnitTest {
                 null, mockContext,
                 new ProviderModule() {
                     @Override
-                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
                         providerRegistry.registerLazy(
                                 IServiceB.class,
                                 () -> new ServiceBImpl(provider.get(IServiceA.class)));
@@ -423,7 +423,7 @@ public class DefaultNestedProviderUnitTest {
                     }
 
                     @Override
-                    public void dispose(Context context, Provider provider) {
+                    public void dispose(Provider provider) {
                         // leave blank
                     }
                 });
@@ -453,7 +453,7 @@ public class DefaultNestedProviderUnitTest {
                 null, mockContext,
                 new ProviderModule() {
                     @Override
-                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
                         providerRegistry.registerAsync(
                                 IServiceB.class,
                                 () -> new ServiceBImpl(provider.get(IServiceA.class)));
@@ -462,7 +462,7 @@ public class DefaultNestedProviderUnitTest {
                     }
 
                     @Override
-                    public void dispose(Context context, Provider provider) {
+                    public void dispose(Provider provider) {
                         // leave blank
                     }
                 });
@@ -487,7 +487,7 @@ public class DefaultNestedProviderUnitTest {
                 null, mockContext,
                 new ProviderModule() {
                     @Override
-                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
                         providerRegistry.registerLazy(
                                 IServiceB.class,
                                 () -> new ServiceBImpl(provider.get(IServiceA.class)));
@@ -496,7 +496,7 @@ public class DefaultNestedProviderUnitTest {
                     }
 
                     @Override
-                    public void dispose(Context context, Provider provider) {
+                    public void dispose(Provider provider) {
                         // leave blank
                     }
                 });
@@ -521,7 +521,7 @@ public class DefaultNestedProviderUnitTest {
                 null, mockContext,
                 new ProviderModule() {
                     @Override
-                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
                         providerRegistry.registerFactory(MyPojo.class, () -> {
                             MyPojo myPojo = new MyPojo();
                             myPojo.setAge(99);
@@ -531,7 +531,7 @@ public class DefaultNestedProviderUnitTest {
                     }
 
                     @Override
-                    public void dispose(Context context, Provider provider) {
+                    public void dispose(Provider provider) {
                         // leave blank
                     }
                 });
@@ -573,7 +573,7 @@ public class DefaultNestedProviderUnitTest {
         Provider testProvider = Provider.createProvider(mockContext,
                 new ProviderModule() {
                     @Override
-                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
                         providerRegistry.registerPool(MyPojo.class, () -> {
                             MyPojo myPojo = new MyPojo();
                             myPojo.setAge(99);
@@ -583,7 +583,7 @@ public class DefaultNestedProviderUnitTest {
                     }
 
                     @Override
-                    public void dispose(Context context, Provider provider) {
+                    public void dispose(Provider provider) {
                         // leave blank
                     }
                 });
@@ -628,7 +628,7 @@ public class DefaultNestedProviderUnitTest {
         DisposableRegisterLazyService registerLazyService = Mockito.mock(DisposableRegisterLazyService.class);
         ProviderModule providerModule = new ProviderModule() {
             @Override
-            public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+            public void provides(ProviderRegistry providerRegistry, Provider provider) {
                 providerRegistry.register(
                         DisposableRegisterService.class,
                         registerService
@@ -653,7 +653,7 @@ public class DefaultNestedProviderUnitTest {
             }
 
             @Override
-            public void dispose(Context context, Provider provider) {
+            public void dispose(Provider provider) {
                 // leave blank
             }
         };
@@ -687,7 +687,7 @@ public class DefaultNestedProviderUnitTest {
         DisposableRegisterLazyService registerLazyService = Mockito.mock(DisposableRegisterLazyService.class);
         ProviderModule providerModule = new ProviderModule() {
             @Override
-            public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+            public void provides(ProviderRegistry providerRegistry, Provider provider) {
                 providerRegistry.register(
                         DisposableRegisterService.class,
                         registerService
@@ -710,7 +710,7 @@ public class DefaultNestedProviderUnitTest {
             }
 
             @Override
-            public void dispose(Context context, Provider provider) {
+            public void dispose(Provider provider) {
                 // leave blank
             }
         };
@@ -787,24 +787,24 @@ public class DefaultNestedProviderUnitTest {
         ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
         Provider rootProvider = Provider.createProvider(mockContext, new ProviderModule() {
             @Override
-            public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+            public void provides(ProviderRegistry providerRegistry, Provider provider) {
                 providerRegistry.register(ScheduledExecutorService.class, scheduledExecutorService);
             }
 
             @Override
-            public void dispose(Context context, Provider provider) {
+            public void dispose(Provider provider) {
                 // nothing to dispose
             }
         });
         Provider testProvider = Provider.createNestedProvider("test",
                 rootProvider, mockContext, new ProviderModule() {
                     @Override
-                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
                         providerRegistry.register(ExecutorService.class, executorService);
                     }
 
                     @Override
-                    public void dispose(Context context, Provider provider) {
+                    public void dispose(Provider provider) {
                         // nothing to dispose
                     }
                 });
@@ -824,26 +824,26 @@ public class DefaultNestedProviderUnitTest {
         // testing real case scenario where you need both ExecutorService & ScheduledExecutorService
         Provider rootProvider = Provider.createProvider(mockContext, new ProviderModule() {
             @Override
-            public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+            public void provides(ProviderRegistry providerRegistry, Provider provider) {
                 providerRegistry.registerFactory(IServiceA.class,
                         () -> Mockito.mock(IServiceA.class));
             }
 
             @Override
-            public void dispose(Context context, Provider provider) {
+            public void dispose(Provider provider) {
                 // nothing to dispose
             }
         });
         Provider testProvider = Provider.createNestedProvider("test",
                 rootProvider, mockContext, new ProviderModule() {
                     @Override
-                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
                         providerRegistry.registerFactory(IServiceB.class,
                                 () -> Mockito.mock(IServiceB.class));
                     }
 
                     @Override
-                    public void dispose(Context context, Provider provider) {
+                    public void dispose(Provider provider) {
                         // nothing to dispose
                     }
                 });
@@ -860,25 +860,25 @@ public class DefaultNestedProviderUnitTest {
     public void singletonParent_registrationAndExactGet_withParentDependency() {
         Provider rootProvider = Provider.createProvider(mockContext, new ProviderModule() {
             @Override
-            public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+            public void provides(ProviderRegistry providerRegistry, Provider provider) {
                 providerRegistry.registerLazy(IServiceA.class, ServiceAImpl::new);
             }
 
             @Override
-            public void dispose(Context context, Provider provider) {
+            public void dispose(Provider provider) {
                 // nothing to dispose
             }
         });
         Provider testProvider = Provider.createNestedProvider("test",
                 rootProvider, mockContext, new ProviderModule() {
                     @Override
-                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
                         providerRegistry.registerLazy(IServiceB.class,
                                 () -> new ServiceBImpl(provider.get(IServiceA.class)));
                     }
 
                     @Override
-                    public void dispose(Context context, Provider provider) {
+                    public void dispose(Provider provider) {
                         // nothing to dispose
                     }
                 });
@@ -894,25 +894,25 @@ public class DefaultNestedProviderUnitTest {
         Provider rootProvider = Provider.createNestedProvider("test", null,
                 mockContext, new ProviderModule() {
                     @Override
-                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
                         providerRegistry.registerLazy(IServiceA.class, ServiceAImpl::new);
                     }
 
                     @Override
-                    public void dispose(Context context, Provider provider) {
+                    public void dispose(Provider provider) {
                         // nothing to dispose
                     }
                 });
         Provider testProvider = Provider.createNestedProvider("test",
                 rootProvider, mockContext, new ProviderModule() {
                     @Override
-                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
                         providerRegistry.registerLazy(IServiceB.class,
                                 () -> new ServiceBImpl(provider.get(IServiceA.class)));
                     }
 
                     @Override
-                    public void dispose(Context context, Provider provider) {
+                    public void dispose(Provider provider) {
                         // nothing to dispose
                     }
                 });
@@ -927,25 +927,25 @@ public class DefaultNestedProviderUnitTest {
     public void singletonParent_registerAsyncAndExactGet_withParentDependency() {
         Provider rootProvider = Provider.createProvider(mockContext, new ProviderModule() {
             @Override
-            public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+            public void provides(ProviderRegistry providerRegistry, Provider provider) {
                 providerRegistry.registerAsync(IServiceA.class, ServiceAImpl::new);
             }
 
             @Override
-            public void dispose(Context context, Provider provider) {
+            public void dispose(Provider provider) {
                 // nothing to dispose
             }
         });
         Provider testProvider = Provider.createNestedProvider("test",
                 rootProvider, mockContext, new ProviderModule() {
                     @Override
-                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
                         providerRegistry.registerAsync(IServiceB.class,
                                 () -> new ServiceBImpl(provider.get(IServiceA.class)));
                     }
 
                     @Override
-                    public void dispose(Context context, Provider provider) {
+                    public void dispose(Provider provider) {
                         // nothing to dispose
                     }
                 });
@@ -960,19 +960,19 @@ public class DefaultNestedProviderUnitTest {
     public void singletonParent_registerAndExactGet_withParentDependencyAndChildInvokeGet() {
         Provider rootProvider = Provider.createProvider(mockContext, new ProviderModule() {
             @Override
-            public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+            public void provides(ProviderRegistry providerRegistry, Provider provider) {
                 providerRegistry.register(IServiceA.class, ServiceAImpl::new);
             }
 
             @Override
-            public void dispose(Context context, Provider provider) {
+            public void dispose(Provider provider) {
                 // nothing to dispose
             }
         });
         Provider testProvider = Provider.createNestedProvider("test",
                 rootProvider, mockContext, new ProviderModule() {
                     @Override
-                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
                         // test get value here,
                         // should contain value from parent
                         IServiceA iServiceA = provider.get(IServiceA.class);
@@ -981,7 +981,7 @@ public class DefaultNestedProviderUnitTest {
                     }
 
                     @Override
-                    public void dispose(Context context, Provider provider) {
+                    public void dispose(Provider provider) {
                         // nothing to dispose
                     }
                 });

@@ -35,7 +35,7 @@ First create root module as a root of the provider to provide services.
 ```
 public class RootModule implements ProviderModule{
     @Override
-    void provides(Context context, ProviderRegistry providerRegistry, Provider provider){
+    void provides(ProviderRegistry providerRegistry, Provider provider){
         // Register your services/components here or other ProviderModule
         providerRegistry.register(IService.class, new ServiceImpl());
         providerRegistry.registerModule(new ProviderModuleA());
@@ -61,7 +61,7 @@ public class RootModule implements ProviderModule{
     }
 
     @Override
-    void dispose(Context context, Provider provider){
+    void dispose(Provider provider){
         // do something when this module is going to be disposed
     }
 }

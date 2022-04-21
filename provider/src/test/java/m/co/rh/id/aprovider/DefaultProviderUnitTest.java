@@ -56,12 +56,12 @@ public class DefaultProviderUnitTest {
         ServiceAImpl serviceA = new ServiceAImpl();
         Provider testProvider = Provider.createProvider(mockContext, new ProviderModule() {
             @Override
-            public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+            public void provides(ProviderRegistry providerRegistry, Provider provider) {
                 // leave blank
             }
 
             @Override
-            public void dispose(Context context, Provider provider) {
+            public void dispose(Provider provider) {
                 // nothing to dispose
             }
         });
@@ -78,13 +78,13 @@ public class DefaultProviderUnitTest {
         ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
         Provider testProvider = Provider.createProvider(mockContext, new ProviderModule() {
             @Override
-            public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+            public void provides(ProviderRegistry providerRegistry, Provider provider) {
                 providerRegistry.register(ScheduledExecutorService.class, scheduledExecutorService);
                 providerRegistry.register(ExecutorService.class, executorService);
             }
 
             @Override
-            public void dispose(Context context, Provider provider) {
+            public void dispose(Provider provider) {
                 // nothing to dispose
             }
         });
@@ -104,12 +104,12 @@ public class DefaultProviderUnitTest {
         ServiceAImpl serviceA = new ServiceAImpl();
         Provider testProvider = Provider.createProvider(mockContext, new ProviderModule() {
             @Override
-            public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+            public void provides(ProviderRegistry providerRegistry, Provider provider) {
                 providerRegistry.register(IServiceA.class, serviceA);
             }
 
             @Override
-            public void dispose(Context context, Provider provider) {
+            public void dispose(Provider provider) {
                 // nothing to dispose
             }
         });
@@ -137,12 +137,12 @@ public class DefaultProviderUnitTest {
         ServiceAImpl serviceA = new ServiceAImpl();
         Provider testProvider = Provider.createProvider(mockContext, new ProviderModule() {
             @Override
-            public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+            public void provides(ProviderRegistry providerRegistry, Provider provider) {
                 providerRegistry.register(IServiceA.class, serviceA);
             }
 
             @Override
-            public void dispose(Context context, Provider provider) {
+            public void dispose(Provider provider) {
                 // nothing to dispose
             }
         });
@@ -174,12 +174,12 @@ public class DefaultProviderUnitTest {
         DefaultProvider testProvider = (DefaultProvider)
                 Provider.createProvider(mockContext, new ProviderModule() {
                     @Override
-                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
                         // leave blank
                     }
 
                     @Override
-                    public void dispose(Context context, Provider provider) {
+                    public void dispose(Provider provider) {
                         // nothing to dispose
                     }
                 });
@@ -209,13 +209,13 @@ public class DefaultProviderUnitTest {
         ServiceAImpl serviceA = new ServiceAImpl();
         Provider.createProvider(mockContext, new ProviderModule() {
             @Override
-            public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+            public void provides(ProviderRegistry providerRegistry, Provider provider) {
                 providerRegistry.register(IServiceA.class, serviceA);
                 providerRegistry.register(IServiceA.class, new ServiceAImpl());
             }
 
             @Override
-            public void dispose(Context context, Provider provider) {
+            public void dispose(Provider provider) {
                 // leave blank
             }
         });
@@ -226,12 +226,12 @@ public class DefaultProviderUnitTest {
         Provider testProvider = Provider.createProvider(mockContext,
                 new ProviderModule() {
                     @Override
-                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
                         providerRegistry.registerModule(new ModuleA());
                     }
 
                     @Override
-                    public void dispose(Context context, Provider provider) {
+                    public void dispose(Provider provider) {
 
                     }
                 });
@@ -260,13 +260,13 @@ public class DefaultProviderUnitTest {
         Provider.createProvider(mockContext,
                 new ProviderModule() {
                     @Override
-                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
                         providerRegistry.registerModule(new ModuleA());
                         providerRegistry.registerModule(new ModuleA());
                     }
 
                     @Override
-                    public void dispose(Context context, Provider provider) {
+                    public void dispose(Provider provider) {
                         // leave blank
                     }
                 });
@@ -286,12 +286,12 @@ public class DefaultProviderUnitTest {
         testProvider = Provider.createProvider(mockContext,
                 new ProviderModule() {
                     @Override
-                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
                         providerRegistry.registerModule(registerModuleA);
                     }
 
                     @Override
-                    public void dispose(Context context, Provider provider) {
+                    public void dispose(Provider provider) {
                         // leave blank
                     }
                 });
@@ -305,13 +305,13 @@ public class DefaultProviderUnitTest {
         Provider testProvider = Provider.createProvider(mockContext,
                 new ProviderModule() {
                     @Override
-                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
                         providerRegistry.registerLazy(
                                 IServiceA.class, ServiceAImpl::new);
                     }
 
                     @Override
-                    public void dispose(Context context, Provider provider) {
+                    public void dispose(Provider provider) {
                         // leave blank
                     }
                 });
@@ -340,13 +340,13 @@ public class DefaultProviderUnitTest {
         Provider testProvider = Provider.createProvider(mockContext,
                 new ProviderModule() {
                     @Override
-                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
                         providerRegistry.registerLazy(
                                 ExecutorService.class, Executors::newSingleThreadExecutor);
                     }
 
                     @Override
-                    public void dispose(Context context, Provider provider) {
+                    public void dispose(Provider provider) {
                         // leave blank
                     }
                 });
@@ -367,7 +367,7 @@ public class DefaultProviderUnitTest {
         Provider testProvider = Provider.createProvider(mockContext,
                 new ProviderModule() {
                     @Override
-                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
                         providerRegistry.registerLazy(
                                 IServiceB.class,
                                 () -> new ServiceBImpl(provider.get(IServiceA.class)));
@@ -376,7 +376,7 @@ public class DefaultProviderUnitTest {
                     }
 
                     @Override
-                    public void dispose(Context context, Provider provider) {
+                    public void dispose(Provider provider) {
                         // leave blank
                     }
                 });
@@ -400,7 +400,7 @@ public class DefaultProviderUnitTest {
         testProvider = Provider.createProvider(mockContext,
                 new ProviderModule() {
                     @Override
-                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
                         providerRegistry.registerLazy(
                                 IServiceB.class,
                                 () -> new ServiceBImpl(provider.get(IServiceA.class)));
@@ -409,7 +409,7 @@ public class DefaultProviderUnitTest {
                     }
 
                     @Override
-                    public void dispose(Context context, Provider provider) {
+                    public void dispose(Provider provider) {
                         // leave blank
                     }
                 });
@@ -438,7 +438,7 @@ public class DefaultProviderUnitTest {
         Provider testProvider = Provider.createProvider(mockContext,
                 new ProviderModule() {
                     @Override
-                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
                         providerRegistry.registerAsync(
                                 IServiceB.class,
                                 () -> new ServiceBImpl(provider.get(IServiceA.class)));
@@ -447,7 +447,7 @@ public class DefaultProviderUnitTest {
                     }
 
                     @Override
-                    public void dispose(Context context, Provider provider) {
+                    public void dispose(Provider provider) {
                         // leave blank
                     }
                 });
@@ -471,7 +471,7 @@ public class DefaultProviderUnitTest {
         testProvider = Provider.createProvider(mockContext,
                 new ProviderModule() {
                     @Override
-                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
                         providerRegistry.registerLazy(
                                 IServiceB.class,
                                 () -> new ServiceBImpl(provider.get(IServiceA.class)));
@@ -480,7 +480,7 @@ public class DefaultProviderUnitTest {
                     }
 
                     @Override
-                    public void dispose(Context context, Provider provider) {
+                    public void dispose(Provider provider) {
                         // leave blank
                     }
                 });
@@ -504,7 +504,7 @@ public class DefaultProviderUnitTest {
         Provider testProvider = Provider.createProvider(mockContext,
                 new ProviderModule() {
                     @Override
-                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
                         providerRegistry.registerFactory(MyPojo.class, () -> {
                             MyPojo myPojo = new MyPojo();
                             myPojo.setAge(99);
@@ -514,7 +514,7 @@ public class DefaultProviderUnitTest {
                     }
 
                     @Override
-                    public void dispose(Context context, Provider provider) {
+                    public void dispose(Provider provider) {
                         // leave blank
                     }
                 });
@@ -556,7 +556,7 @@ public class DefaultProviderUnitTest {
         Provider testProvider = Provider.createProvider(mockContext,
                 new ProviderModule() {
                     @Override
-                    public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
                         providerRegistry.registerPool(MyPojo.class, () -> {
                             MyPojo myPojo = new MyPojo();
                             myPojo.setAge(99);
@@ -566,7 +566,7 @@ public class DefaultProviderUnitTest {
                     }
 
                     @Override
-                    public void dispose(Context context, Provider provider) {
+                    public void dispose(Provider provider) {
                         // leave blank
                     }
                 });
@@ -611,7 +611,7 @@ public class DefaultProviderUnitTest {
         DisposableRegisterLazyService registerLazyService = Mockito.mock(DisposableRegisterLazyService.class);
         ProviderModule providerModule = new ProviderModule() {
             @Override
-            public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+            public void provides(ProviderRegistry providerRegistry, Provider provider) {
                 providerRegistry.register(
                         DisposableRegisterService.class,
                         registerService
@@ -636,7 +636,7 @@ public class DefaultProviderUnitTest {
             }
 
             @Override
-            public void dispose(Context context, Provider provider) {
+            public void dispose(Provider provider) {
                 // leave blank
             }
         };
@@ -669,7 +669,7 @@ public class DefaultProviderUnitTest {
         DisposableRegisterLazyService registerLazyService = Mockito.mock(DisposableRegisterLazyService.class);
         ProviderModule providerModule = new ProviderModule() {
             @Override
-            public void provides(Context context, ProviderRegistry providerRegistry, Provider provider) {
+            public void provides(ProviderRegistry providerRegistry, Provider provider) {
                 providerRegistry.register(
                         DisposableRegisterService.class,
                         registerService
@@ -692,7 +692,7 @@ public class DefaultProviderUnitTest {
             }
 
             @Override
-            public void dispose(Context context, Provider provider) {
+            public void dispose(Provider provider) {
                 // leave blank
             }
         };

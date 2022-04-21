@@ -130,7 +130,7 @@ class DefaultProvider implements Provider, ProviderRegistry {
         mIsDisposed = true;
         if (!mModuleList.isEmpty()) {
             for (ProviderModule providerModule : mModuleList) {
-                providerModule.dispose(mContext, this);
+                providerModule.dispose(this);
             }
             mModuleList.clear();
             mModuleList = null;
@@ -155,7 +155,7 @@ class DefaultProvider implements Provider, ProviderRegistry {
     @Override
     public void registerModule(ProviderModule providerModule) {
         checkDisposed();
-        providerModule.provides(mContext, this, this);
+        providerModule.provides(this, this);
         mModuleList.add(providerModule);
     }
 
