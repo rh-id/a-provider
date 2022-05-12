@@ -108,6 +108,7 @@ public class MyApplication extends Application {
 <li>https://github.com/rh-id/a-news-provider</li>
 <li>https://github.com/rh-id/a-flash-deck</li>
 <li>https://github.com/rh-id/a-medic-log</li>
+<li>https://github.com/rh-id/a-personal-stuff</li>
 </ul>
 
 ## Support this project
