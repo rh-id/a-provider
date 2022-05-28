@@ -53,18 +53,10 @@ public class DefaultProviderUnitTest {
 
     @Test
     public void getProviderRegistryUsingGet() {
-        ServiceAImpl serviceA = new ServiceAImpl();
-        Provider testProvider = Provider.createProvider(mockContext, new ProviderModule() {
-            @Override
-            public void provides(ProviderRegistry providerRegistry, Provider provider) {
-                // leave blank
-            }
-
-            @Override
-            public void dispose(Provider provider) {
-                // nothing to dispose
-            }
-        });
+        Provider testProvider = Provider.createProvider(mockContext,
+                (providerRegistry, provider) -> {
+                    // leave blank
+                });
 
         assertSame(testProvider.get(ProviderRegistry.class), testProvider);
         assertSame(testProvider.lazyGet(ProviderRegistry.class).get(), testProvider);
@@ -76,18 +68,11 @@ public class DefaultProviderUnitTest {
         // testing real case scenario where you need both ExecutorService & ScheduledExecutorService
         ExecutorService executorService = Executors.newSingleThreadExecutor();
         ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
-        Provider testProvider = Provider.createProvider(mockContext, new ProviderModule() {
-            @Override
-            public void provides(ProviderRegistry providerRegistry, Provider provider) {
-                providerRegistry.register(ScheduledExecutorService.class, scheduledExecutorService);
-                providerRegistry.register(ExecutorService.class, executorService);
-            }
-
-            @Override
-            public void dispose(Provider provider) {
-                // nothing to dispose
-            }
-        });
+        Provider testProvider = Provider.createProvider(mockContext,
+                (providerRegistry, provider) -> {
+                    providerRegistry.register(ScheduledExecutorService.class, scheduledExecutorService);
+                    providerRegistry.register(ExecutorService.class, executorService);
+                });
 
         assertSame(testProvider.get(ExecutorService.class), executorService);
         assertSame(testProvider.get(ScheduledExecutorService.class), scheduledExecutorService);
@@ -102,17 +87,9 @@ public class DefaultProviderUnitTest {
     @Test
     public void singleton_registrationAndGet() {
         ServiceAImpl serviceA = new ServiceAImpl();
-        Provider testProvider = Provider.createProvider(mockContext, new ProviderModule() {
-            @Override
-            public void provides(ProviderRegistry providerRegistry, Provider provider) {
-                providerRegistry.register(IServiceA.class, serviceA);
-            }
-
-            @Override
-            public void dispose(Provider provider) {
-                // nothing to dispose
-            }
-        });
+        Provider testProvider = Provider.createProvider(mockContext,
+                (providerRegistry, provider) ->
+                        providerRegistry.register(IServiceA.class, serviceA));
 
         IServiceA serviceAFromProvider = testProvider.get(IServiceA.class);
         assertSame(serviceAFromProvider, serviceA);
@@ -135,17 +112,9 @@ public class DefaultProviderUnitTest {
     @Test
     public void singleton_registrationAndLazyGet() {
         ServiceAImpl serviceA = new ServiceAImpl();
-        Provider testProvider = Provider.createProvider(mockContext, new ProviderModule() {
-            @Override
-            public void provides(ProviderRegistry providerRegistry, Provider provider) {
-                providerRegistry.register(IServiceA.class, serviceA);
-            }
-
-            @Override
-            public void dispose(Provider provider) {
-                // nothing to dispose
-            }
-        });
+        Provider testProvider = Provider.createProvider(mockContext,
+                (providerRegistry, provider) ->
+                        providerRegistry.register(IServiceA.class, serviceA));
 
         IServiceA serviceAFromProvider = testProvider.lazyGet(IServiceA.class).get();
         assertSame(serviceAFromProvider, serviceA);
@@ -172,16 +141,8 @@ public class DefaultProviderUnitTest {
     public void singleton_registrationAndLazyGetAndTryLazyGetDifference() {
         ServiceAImpl serviceA = new ServiceAImpl();
         DefaultProvider testProvider = (DefaultProvider)
-                Provider.createProvider(mockContext, new ProviderModule() {
-                    @Override
-                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
-                        // leave blank
-                    }
-
-                    @Override
-                    public void dispose(Provider provider) {
-                        // nothing to dispose
-                    }
+                Provider.createProvider(mockContext, (providerRegistry, provider) -> {
+                    // leave blank
                 });
 
         assertThrows(NullPointerException.class, () -> testProvider.get(IServiceA.class));
@@ -207,34 +168,16 @@ public class DefaultProviderUnitTest {
     @Test(expected = IllegalArgumentException.class)
     public void singleton_registerSameClass() {
         ServiceAImpl serviceA = new ServiceAImpl();
-        Provider.createProvider(mockContext, new ProviderModule() {
-            @Override
-            public void provides(ProviderRegistry providerRegistry, Provider provider) {
-                providerRegistry.register(IServiceA.class, serviceA);
-                providerRegistry.register(IServiceA.class, new ServiceAImpl());
-            }
-
-            @Override
-            public void dispose(Provider provider) {
-                // leave blank
-            }
+        Provider.createProvider(mockContext, (providerRegistry, provider) -> {
+            providerRegistry.register(IServiceA.class, serviceA);
+            providerRegistry.register(IServiceA.class, new ServiceAImpl());
         });
     }
 
     @Test
     public void module_registrationAndGet() {
         Provider testProvider = Provider.createProvider(mockContext,
-                new ProviderModule() {
-                    @Override
-                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
-                        providerRegistry.registerModule(new ModuleA());
-                    }
-
-                    @Override
-                    public void dispose(Provider provider) {
-
-                    }
-                });
+                (providerRegistry, provider) -> providerRegistry.registerModule(new ModuleA()));
 
         IServiceA serviceAFromProvider = testProvider.get(IServiceA.class);
         assertNotNull(serviceAFromProvider);
@@ -258,17 +201,9 @@ public class DefaultProviderUnitTest {
     public void module_registrationMultipleSameModule() {
         // the exception was caused by duplicate services, NOT cause by multiple module instances
         Provider.createProvider(mockContext,
-                new ProviderModule() {
-                    @Override
-                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
-                        providerRegistry.registerModule(new ModuleA());
-                        providerRegistry.registerModule(new ModuleA());
-                    }
-
-                    @Override
-                    public void dispose(Provider provider) {
-                        // leave blank
-                    }
+                (providerRegistry, provider) -> {
+                    providerRegistry.registerModule(new ModuleA());
+                    providerRegistry.registerModule(new ModuleA());
                 });
     }
 
@@ -284,17 +219,7 @@ public class DefaultProviderUnitTest {
         // test another scenario where module is registered on root module
         final ModuleA registerModuleA = new ModuleA();
         testProvider = Provider.createProvider(mockContext,
-                new ProviderModule() {
-                    @Override
-                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
-                        providerRegistry.registerModule(registerModuleA);
-                    }
-
-                    @Override
-                    public void dispose(Provider provider) {
-                        // leave blank
-                    }
-                });
+                (providerRegistry, provider) -> providerRegistry.registerModule(registerModuleA));
         assertFalse(registerModuleA.isDisposed);
         testProvider.dispose();
         assertTrue(registerModuleA.isDisposed);
@@ -303,18 +228,8 @@ public class DefaultProviderUnitTest {
     @Test
     public void lazySingleton_registrationAndGet() {
         Provider testProvider = Provider.createProvider(mockContext,
-                new ProviderModule() {
-                    @Override
-                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
-                        providerRegistry.registerLazy(
-                                IServiceA.class, ServiceAImpl::new);
-                    }
-
-                    @Override
-                    public void dispose(Provider provider) {
-                        // leave blank
-                    }
-                });
+                (providerRegistry, provider) -> providerRegistry.registerLazy(
+                        IServiceA.class, ServiceAImpl::new));
         IServiceA serviceAFromProvider1 = testProvider.get(IServiceA.class);
         assertNotNull(serviceAFromProvider1);
         IServiceA serviceAFromProvider2 = testProvider.get(IServiceA.class);
@@ -338,18 +253,8 @@ public class DefaultProviderUnitTest {
     @Test
     public void lazySingleton_executorService_registrationAndGet() {
         Provider testProvider = Provider.createProvider(mockContext,
-                new ProviderModule() {
-                    @Override
-                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
-                        providerRegistry.registerLazy(
-                                ExecutorService.class, Executors::newSingleThreadExecutor);
-                    }
-
-                    @Override
-                    public void dispose(Provider provider) {
-                        // leave blank
-                    }
-                });
+                (providerRegistry, provider) -> providerRegistry.registerLazy(
+                        ExecutorService.class, Executors::newSingleThreadExecutor));
         ExecutorService executorServiceFromProvider1 = testProvider.get(ExecutorService.class);
         assertNotNull(executorServiceFromProvider1);
         // ExecutorService extends Executor, must be able to get instance if using parent class
@@ -365,20 +270,12 @@ public class DefaultProviderUnitTest {
          The provider support this inversion pattern by using LazySingletonProviderRegister
          */
         Provider testProvider = Provider.createProvider(mockContext,
-                new ProviderModule() {
-                    @Override
-                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
-                        providerRegistry.registerLazy(
-                                IServiceB.class,
-                                () -> new ServiceBImpl(provider.get(IServiceA.class)));
-                        providerRegistry.registerLazy(
-                                IServiceA.class, ServiceAImpl::new);
-                    }
-
-                    @Override
-                    public void dispose(Provider provider) {
-                        // leave blank
-                    }
+                (providerRegistry, provider) -> {
+                    providerRegistry.registerLazy(
+                            IServiceB.class,
+                            () -> new ServiceBImpl(provider.get(IServiceA.class)));
+                    providerRegistry.registerLazy(
+                            IServiceA.class, ServiceAImpl::new);
                 });
         // try to get IServiceB first to check if it works
         IServiceB serviceBFromProvider1 = testProvider.get(IServiceB.class);
@@ -398,20 +295,12 @@ public class DefaultProviderUnitTest {
 
         // Another similar scenario, only get IServiceA first then get IServiceB
         testProvider = Provider.createProvider(mockContext,
-                new ProviderModule() {
-                    @Override
-                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
-                        providerRegistry.registerLazy(
-                                IServiceB.class,
-                                () -> new ServiceBImpl(provider.get(IServiceA.class)));
-                        providerRegistry.registerLazy(
-                                IServiceA.class, ServiceAImpl::new);
-                    }
-
-                    @Override
-                    public void dispose(Provider provider) {
-                        // leave blank
-                    }
+                (providerRegistry, provider) -> {
+                    providerRegistry.registerLazy(
+                            IServiceB.class,
+                            () -> new ServiceBImpl(provider.get(IServiceA.class)));
+                    providerRegistry.registerLazy(
+                            IServiceA.class, ServiceAImpl::new);
                 });
         serviceAFromProvider1 = testProvider.get(IServiceA.class);
         assertNotNull(serviceAFromProvider1);
@@ -436,20 +325,12 @@ public class DefaultProviderUnitTest {
          The provider support this inversion pattern by using LazySingletonProviderRegister
          */
         Provider testProvider = Provider.createProvider(mockContext,
-                new ProviderModule() {
-                    @Override
-                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
-                        providerRegistry.registerAsync(
-                                IServiceB.class,
-                                () -> new ServiceBImpl(provider.get(IServiceA.class)));
-                        providerRegistry.registerAsync(
-                                IServiceA.class, ServiceAImpl::new);
-                    }
-
-                    @Override
-                    public void dispose(Provider provider) {
-                        // leave blank
-                    }
+                (providerRegistry, provider) -> {
+                    providerRegistry.registerAsync(
+                            IServiceB.class,
+                            () -> new ServiceBImpl(provider.get(IServiceA.class)));
+                    providerRegistry.registerAsync(
+                            IServiceA.class, ServiceAImpl::new);
                 });
         // try to get IServiceB first to check if it works
         IServiceB serviceBFromProvider1 = testProvider.get(IServiceB.class);
@@ -469,20 +350,12 @@ public class DefaultProviderUnitTest {
 
         // Another similar scenario, only get IServiceA first then get IServiceB
         testProvider = Provider.createProvider(mockContext,
-                new ProviderModule() {
-                    @Override
-                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
-                        providerRegistry.registerLazy(
-                                IServiceB.class,
-                                () -> new ServiceBImpl(provider.get(IServiceA.class)));
-                        providerRegistry.registerLazy(
-                                IServiceA.class, ServiceAImpl::new);
-                    }
-
-                    @Override
-                    public void dispose(Provider provider) {
-                        // leave blank
-                    }
+                (providerRegistry, provider) -> {
+                    providerRegistry.registerLazy(
+                            IServiceB.class,
+                            () -> new ServiceBImpl(provider.get(IServiceA.class)));
+                    providerRegistry.registerLazy(
+                            IServiceA.class, ServiceAImpl::new);
                 });
         serviceAFromProvider1 = testProvider.get(IServiceA.class);
         assertNotNull(serviceAFromProvider1);
@@ -502,22 +375,12 @@ public class DefaultProviderUnitTest {
     @Test
     public void factory_registrationAndGet() {
         Provider testProvider = Provider.createProvider(mockContext,
-                new ProviderModule() {
-                    @Override
-                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
-                        providerRegistry.registerFactory(MyPojo.class, () -> {
-                            MyPojo myPojo = new MyPojo();
-                            myPojo.setAge(99);
-                            myPojo.setName("Foo");
-                            return myPojo;
-                        });
-                    }
-
-                    @Override
-                    public void dispose(Provider provider) {
-                        // leave blank
-                    }
-                });
+                (providerRegistry, provider) -> providerRegistry.registerFactory(MyPojo.class, () -> {
+                    MyPojo myPojo = new MyPojo();
+                    myPojo.setAge(99);
+                    myPojo.setName("Foo");
+                    return myPojo;
+                }));
         MyPojo myPojo1 = testProvider.get(MyPojo.class);
         assertNotNull(myPojo1);
         assertEquals(myPojo1.getAge(), 99);
@@ -554,22 +417,12 @@ public class DefaultProviderUnitTest {
     @Test
     public void pool_registrationAndGet() {
         Provider testProvider = Provider.createProvider(mockContext,
-                new ProviderModule() {
-                    @Override
-                    public void provides(ProviderRegistry providerRegistry, Provider provider) {
-                        providerRegistry.registerPool(MyPojo.class, () -> {
-                            MyPojo myPojo = new MyPojo();
-                            myPojo.setAge(99);
-                            myPojo.setName("Foo");
-                            return myPojo;
-                        });
-                    }
-
-                    @Override
-                    public void dispose(Provider provider) {
-                        // leave blank
-                    }
-                });
+                (providerRegistry, provider) -> providerRegistry.registerPool(MyPojo.class, () -> {
+                    MyPojo myPojo = new MyPojo();
+                    myPojo.setAge(99);
+                    myPojo.setName("Foo");
+                    return myPojo;
+                }));
         MyPojo myPojo1 = testProvider.get(MyPojo.class);
         assertNotNull(myPojo1);
         assertEquals(myPojo1.getAge(), 99);
@@ -609,36 +462,28 @@ public class DefaultProviderUnitTest {
         DisposableRegisterFactoryService registerFactoryService = Mockito.mock(DisposableRegisterFactoryService.class);
         DisposableRegisterPoolService registerPoolService = Mockito.mock(DisposableRegisterPoolService.class);
         DisposableRegisterLazyService registerLazyService = Mockito.mock(DisposableRegisterLazyService.class);
-        ProviderModule providerModule = new ProviderModule() {
-            @Override
-            public void provides(ProviderRegistry providerRegistry, Provider provider) {
-                providerRegistry.register(
-                        DisposableRegisterService.class,
-                        registerService
-                );
-                providerRegistry.registerAsync(DisposableRegisterAsyncService.class,
-                        () -> registerAsyncService
-                );
-                // Register factory always return same instance for testing purposes
-                // dispose should not be called since "get" is not called
-                providerRegistry.registerFactory(
-                        DisposableRegisterFactoryService.class,
-                        () -> registerFactoryService
-                );
-                // Register pool always return same instance for testing purposes
-                // dispose should not be called since "get" is not called
-                providerRegistry.registerPool(DisposableRegisterPoolService.class,
-                        () -> registerPoolService);
-                providerRegistry.registerLazy(
-                        DisposableRegisterLazyService.class,
-                        () -> registerLazyService
-                );
-            }
-
-            @Override
-            public void dispose(Provider provider) {
-                // leave blank
-            }
+        ProviderModule providerModule = (providerRegistry, provider) -> {
+            providerRegistry.register(
+                    DisposableRegisterService.class,
+                    registerService
+            );
+            providerRegistry.registerAsync(DisposableRegisterAsyncService.class,
+                    () -> registerAsyncService
+            );
+            // Register factory always return same instance for testing purposes
+            // dispose should not be called since "get" is not called
+            providerRegistry.registerFactory(
+                    DisposableRegisterFactoryService.class,
+                    () -> registerFactoryService
+            );
+            // Register pool always return same instance for testing purposes
+            // dispose should not be called since "get" is not called
+            providerRegistry.registerPool(DisposableRegisterPoolService.class,
+                    () -> registerPoolService);
+            providerRegistry.registerLazy(
+                    DisposableRegisterLazyService.class,
+                    () -> registerLazyService
+            );
         };
         ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(1, 1, 30, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
         threadPoolExecutor.prestartAllCoreThreads();
@@ -667,34 +512,26 @@ public class DefaultProviderUnitTest {
         DisposableRegisterService registerService = Mockito.mock(DisposableRegisterService.class);
         DisposableRegisterAsyncService registerAsyncService = Mockito.mock(DisposableRegisterAsyncService.class);
         DisposableRegisterLazyService registerLazyService = Mockito.mock(DisposableRegisterLazyService.class);
-        ProviderModule providerModule = new ProviderModule() {
-            @Override
-            public void provides(ProviderRegistry providerRegistry, Provider provider) {
-                providerRegistry.register(
-                        DisposableRegisterService.class,
-                        registerService
-                );
-                providerRegistry.registerAsync(DisposableRegisterAsyncService.class,
-                        () -> registerAsyncService
-                );
-                providerRegistry.registerFactory(
-                        DisposableRegisterFactoryService.class,
-                        () -> Mockito.mock(DisposableRegisterFactoryService.class)
-                );
-                providerRegistry.registerPool(
-                        DisposableRegisterPoolService.class,
-                        () -> Mockito.mock(DisposableRegisterPoolService.class)
-                );
-                providerRegistry.registerLazy(
-                        DisposableRegisterLazyService.class,
-                        () -> registerLazyService
-                );
-            }
-
-            @Override
-            public void dispose(Provider provider) {
-                // leave blank
-            }
+        ProviderModule providerModule = (providerRegistry, provider) -> {
+            providerRegistry.register(
+                    DisposableRegisterService.class,
+                    registerService
+            );
+            providerRegistry.registerAsync(DisposableRegisterAsyncService.class,
+                    () -> registerAsyncService
+            );
+            providerRegistry.registerFactory(
+                    DisposableRegisterFactoryService.class,
+                    () -> Mockito.mock(DisposableRegisterFactoryService.class)
+            );
+            providerRegistry.registerPool(
+                    DisposableRegisterPoolService.class,
+                    () -> Mockito.mock(DisposableRegisterPoolService.class)
+            );
+            providerRegistry.registerLazy(
+                    DisposableRegisterLazyService.class,
+                    () -> registerLazyService
+            );
         };
         ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(1, 1, 30, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
         threadPoolExecutor.prestartAllCoreThreads();

@@ -17,5 +17,7 @@ public interface ProviderModule {
      *
      * @param provider provider to assist in retrieving registered components from other modules
      */
-    void dispose(Provider provider);
+    default void dispose(Provider provider) {
+        // Default leave blank
+    }
 }
