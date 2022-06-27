@@ -720,4 +720,36 @@ public class DefaultNestedProviderUnitTest {
         assertNotNull(serviceA);
         assertNotNull(serviceB);
     }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void duplicate_providerRegistryWithSkipSameTypeDisabled() {
+        IServiceA serviceA1 = new ServiceAImpl();
+        IServiceA serviceA2 = new ServiceAImpl();
+        Provider testProvider = Provider.createNestedProvider("nested", null
+                , mockContext,
+                (providerRegistry, provider) -> {
+                    //providerRegistry.setSkipSameType(false); // default is false
+                    providerRegistry.register(IServiceA.class, serviceA1);
+                    providerRegistry.register(IServiceA.class, serviceA2);
+                });
+    }
+
+    @Test
+    public void duplicate_providerRegistryWithSkipSameTypeEnabled() {
+        IServiceA serviceA1 = new ServiceAImpl();
+        IServiceA serviceA2 = new ServiceAImpl();
+        Provider testProvider = Provider.createNestedProvider("nested", null, mockContext,
+                (providerRegistry, provider) -> {
+                    providerRegistry.setSkipSameType(true);
+                    providerRegistry.register(IServiceA.class, serviceA1);
+                    providerRegistry.register(IServiceA.class, serviceA2);
+                    providerRegistry.registerLazy(IServiceA.class, () -> serviceA2);
+                    providerRegistry.registerAsync(IServiceA.class, () -> serviceA2);
+                    providerRegistry.setSkipSameType(false);
+                });
+
+        assertSame(testProvider.get(IServiceA.class), serviceA1);
+        assertSame(testProvider.lazyGet(IServiceA.class).get(), serviceA1);
+        assertSame(testProvider.tryLazyGet(IServiceA.class).get(), serviceA1);
+    }
 }

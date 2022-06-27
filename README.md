@@ -103,7 +103,44 @@ public class MyApplication extends Application {
 }
 ```
 
+## Skipping same type
+
+For integration testing purposes you could turn on `skipSameType`. This will make `providerRegistry`
+ignore duplicate type during registration
+
+Example production RootModule:
+
+```
+public class RootModule implements ProviderModule{
+    @Override
+    void provides(ProviderRegistry providerRegistry, Provider provider){
+        providerRegistry.register(IService.class, new ServiceImpl());
+    }
+}
+```
+
+Example test RootModule to be used:
+
+```
+public class TestRootModule extends RootModule{
+    @Override
+    void provides(ProviderRegistry providerRegistry, Provider provider){
+        // register IService.class with test instance
+        providerRegistry.register(IService.class, new TestServiceImpl());
+
+        providerRegistry.setSkipSameType(true); // enable
+        // since skip is true, the IService.class from parent will not be registered again
+        super.provides(providerRegistry, provider); 
+        providerRegistry.setSkipSameType(true); // disable skip after done
+    }
+}
+```
+
+The configuration `providerRegistry.setSkipSameType(true);` can be useful on some circumstances such
+as multiple android app flavors or configuration
+
 ## Example Projects
+
 <ul>
 <li>https://github.com/rh-id/a-news-provider</li>
 <li>https://github.com/rh-id/a-flash-deck</li>

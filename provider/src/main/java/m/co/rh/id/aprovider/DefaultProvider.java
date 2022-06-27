@@ -38,6 +38,8 @@ class DefaultProvider implements Provider, ProviderRegistry {
     private ProviderModule mRootModule;
     private boolean mIsDisposed;
 
+    private boolean skipSameType;
+
     DefaultProvider(Context context, ProviderModule rootModule) {
         this(context, rootModule, initThreadPool(), true);
     }
@@ -153,6 +155,11 @@ class DefaultProvider implements Provider, ProviderRegistry {
     }
 
     @Override
+    public void setSkipSameType(boolean skip) {
+        skipSameType = skip;
+    }
+
+    @Override
     public void registerModule(ProviderModule providerModule) {
         checkDisposed();
         providerModule.provides(this, this);
@@ -173,8 +180,10 @@ class DefaultProvider implements Provider, ProviderRegistry {
     @Override
     public <I> void registerAsync(Class<I> clazz, ProviderValue<I> providerValue) {
         LazyFutureProviderRegister providerRegister = new LazyFutureProviderRegister(clazz, providerValue, mThreadPoolExecutor);
-        register(providerRegister);
-        mAsyncRegisterList.add(providerRegister);
+        boolean registered = register(providerRegister);
+        if (registered) {
+            mAsyncRegisterList.add(providerRegister);
+        }
     }
 
     @Override
@@ -201,9 +210,9 @@ class DefaultProvider implements Provider, ProviderRegistry {
         }
     }
 
-    private <I> void register(ProviderRegister<I> providerRegister) {
+    private <I> boolean register(ProviderRegister<I> providerRegister) {
         checkDisposed();
-        putValue(providerRegister.getType(), providerRegister);
+        return putValue(providerRegister.getType(), providerRegister);
     }
 
     private <I> I processObject(Object result) {
@@ -213,7 +222,7 @@ class DefaultProvider implements Provider, ProviderRegistry {
         return (I) result;
     }
 
-    private <I> void putValue(Class<I> clazz, Object implementation) {
+    private <I> boolean putValue(Class<I> clazz, Object implementation) {
         I tryGetResult = null;
         try {
             tryGetResult = exactGet(clazz);
@@ -222,8 +231,14 @@ class DefaultProvider implements Provider, ProviderRegistry {
         }
         if (tryGetResult == null) {
             mObjectMap.put(clazz, implementation);
+            return true;
         } else {
-            throw new IllegalArgumentException("Duplicate " + clazz.getName() + " found");
+            if (skipSameType) {
+                Log.w(TAG, "Skipping " + clazz.getName());
+            } else {
+                throw new IllegalArgumentException("Duplicate " + clazz.getName() + " found");
+            }
+            return false;
         }
     }
 

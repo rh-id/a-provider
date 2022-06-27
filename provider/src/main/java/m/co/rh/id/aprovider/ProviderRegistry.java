@@ -8,6 +8,14 @@ import android.content.Context;
 public interface ProviderRegistry {
 
     /**
+     * Set this providerRegistry to ignore duplicate type during registration.
+     * Default value should be false.
+     *
+     * @param skip set to true to skip, false to not skip
+     */
+    void setSkipSameType(boolean skip);
+
+    /**
      * Register provider module
      *
      * @param providerModule module to be registered
