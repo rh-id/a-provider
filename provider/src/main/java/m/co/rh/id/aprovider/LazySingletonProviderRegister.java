@@ -9,7 +9,7 @@ import java.util.concurrent.ThreadPoolExecutor;
  * Helper class to register lazy-loaded singleton to the provider
  */
 class LazySingletonProviderRegister<I> extends ProviderRegister<I> implements ProviderDisposable {
-    private static final String TAG = "SingletonProvider";
+    private static final String TAG = "LazySingletonProvider";
 
     private SyncWorkStealingWorker mSyncWorkStealingWorker;
     private I mValue;

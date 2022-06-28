@@ -70,8 +70,8 @@ public class DefaultProviderUnitTest {
         ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
         Provider testProvider = Provider.createProvider(mockContext,
                 (providerRegistry, provider) -> {
-                    providerRegistry.register(ScheduledExecutorService.class, scheduledExecutorService);
-                    providerRegistry.register(ExecutorService.class, executorService);
+                    providerRegistry.register(ScheduledExecutorService.class, () -> scheduledExecutorService);
+                    providerRegistry.register(ExecutorService.class, () -> executorService);
                 });
 
         assertSame(testProvider.get(ExecutorService.class), executorService);
@@ -89,7 +89,7 @@ public class DefaultProviderUnitTest {
         ServiceAImpl serviceA = new ServiceAImpl();
         Provider testProvider = Provider.createProvider(mockContext,
                 (providerRegistry, provider) ->
-                        providerRegistry.register(IServiceA.class, serviceA));
+                        providerRegistry.register(IServiceA.class, () -> serviceA));
 
         IServiceA serviceAFromProvider = testProvider.get(IServiceA.class);
         assertSame(serviceAFromProvider, serviceA);
@@ -114,7 +114,7 @@ public class DefaultProviderUnitTest {
         ServiceAImpl serviceA = new ServiceAImpl();
         Provider testProvider = Provider.createProvider(mockContext,
                 (providerRegistry, provider) ->
-                        providerRegistry.register(IServiceA.class, serviceA));
+                        providerRegistry.register(IServiceA.class, () -> serviceA));
 
         IServiceA serviceAFromProvider = testProvider.lazyGet(IServiceA.class).get();
         assertSame(serviceAFromProvider, serviceA);
@@ -154,7 +154,7 @@ public class DefaultProviderUnitTest {
         assertNull(tryLazyGet.get());
 
         ServiceAImpl serviceA1 = new ServiceAImpl();
-        testProvider.register(IServiceA.class, serviceA);
+        testProvider.register(IServiceA.class, () -> serviceA);
 
         // after register the get should contain value
         assertSame(tryLazyGet.get(), serviceA);
@@ -169,8 +169,8 @@ public class DefaultProviderUnitTest {
     public void singleton_registerSameClass() {
         ServiceAImpl serviceA = new ServiceAImpl();
         Provider.createProvider(mockContext, (providerRegistry, provider) -> {
-            providerRegistry.register(IServiceA.class, serviceA);
-            providerRegistry.register(IServiceA.class, new ServiceAImpl());
+            providerRegistry.register(IServiceA.class, () -> serviceA);
+            providerRegistry.register(IServiceA.class, ServiceAImpl::new);
         });
     }
 
@@ -465,7 +465,7 @@ public class DefaultProviderUnitTest {
         ProviderModule providerModule = (providerRegistry, provider) -> {
             providerRegistry.register(
                     DisposableRegisterService.class,
-                    registerService
+                    () -> registerService
             );
             providerRegistry.registerAsync(DisposableRegisterAsyncService.class,
                     () -> registerAsyncService
@@ -515,7 +515,7 @@ public class DefaultProviderUnitTest {
         ProviderModule providerModule = (providerRegistry, provider) -> {
             providerRegistry.register(
                     DisposableRegisterService.class,
-                    registerService
+                    () -> registerService
             );
             providerRegistry.registerAsync(DisposableRegisterAsyncService.class,
                     () -> registerAsyncService
@@ -604,8 +604,8 @@ public class DefaultProviderUnitTest {
         Provider testProvider = Provider.createProvider(mockContext,
                 (providerRegistry, provider) -> {
                     //providerRegistry.setSkipSameType(false); // default is false
-                    providerRegistry.register(IServiceA.class, serviceA1);
-                    providerRegistry.register(IServiceA.class, serviceA2);
+                    providerRegistry.register(IServiceA.class, () -> serviceA1);
+                    providerRegistry.register(IServiceA.class, () -> serviceA2);
                 });
     }
 
@@ -616,8 +616,8 @@ public class DefaultProviderUnitTest {
         Provider testProvider = Provider.createProvider(mockContext,
                 (providerRegistry, provider) -> {
                     providerRegistry.setSkipSameType(true);
-                    providerRegistry.register(IServiceA.class, serviceA1);
-                    providerRegistry.register(IServiceA.class, serviceA2);
+                    providerRegistry.register(IServiceA.class, () -> serviceA1);
+                    providerRegistry.register(IServiceA.class, () -> serviceA2);
                     providerRegistry.registerLazy(IServiceA.class, () -> serviceA2);
                     providerRegistry.registerAsync(IServiceA.class, () -> serviceA2);
                     providerRegistry.setSkipSameType(false);

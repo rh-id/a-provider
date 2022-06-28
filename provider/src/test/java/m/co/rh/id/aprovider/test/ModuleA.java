@@ -9,7 +9,7 @@ public class ModuleA implements ProviderModule {
 
     @Override
     public void provides(ProviderRegistry providerRegistry, Provider provider) {
-        providerRegistry.register(IServiceA.class, new ServiceAImpl());
+        providerRegistry.register(IServiceA.class, ServiceAImpl::new);
     }
 
     @Override

@@ -28,9 +28,10 @@ public interface ProviderRegistry {
      *
      * @param <I>            type of the object/service
      * @param clazz          the class of the service usually interface
-     * @param implementation the actual service implementation
+     * @param implementation ProviderValue with the actual service implementation,
+     *                       in which will be invoked when ProviderRegistry register this type
      */
-    <I> void register(Class<I> clazz, I implementation);
+    <I> void register(Class<I> clazz, ProviderValue<I> implementation);
 
     /**
      * Register components/services lazily

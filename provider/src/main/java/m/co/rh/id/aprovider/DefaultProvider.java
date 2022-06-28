@@ -167,9 +167,9 @@ class DefaultProvider implements Provider, ProviderRegistry {
     }
 
     @Override
-    public <I> void register(Class<I> clazz, I implementation) {
+    public <I> void register(Class<I> clazz, ProviderValue<I> providerValue) {
         checkDisposed();
-        putValue(clazz, implementation);
+        putValue(clazz, new SingletonProviderRegister<>(clazz, providerValue));
     }
 
     @Override
@@ -222,7 +222,7 @@ class DefaultProvider implements Provider, ProviderRegistry {
         return (I) result;
     }
 
-    private <I> boolean putValue(Class<I> clazz, Object implementation) {
+    private <I> boolean putValue(Class<I> clazz, ProviderRegister<I> implementation) {
         I tryGetResult = null;
         try {
             tryGetResult = exactGet(clazz);
@@ -230,7 +230,11 @@ class DefaultProvider implements Provider, ProviderRegistry {
             // leave blank
         }
         if (tryGetResult == null) {
-            mObjectMap.put(clazz, implementation);
+            if (implementation instanceof SingletonProviderRegister) {
+                mObjectMap.put(clazz, implementation.get());
+            } else {
+                mObjectMap.put(clazz, implementation);
+            }
             return true;
         } else {
             if (skipSameType) {

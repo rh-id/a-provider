@@ -37,7 +37,7 @@ public class RootModule implements ProviderModule{
     @Override
     void provides(ProviderRegistry providerRegistry, Provider provider){
         // Register your services/components here or other ProviderModule
-        providerRegistry.register(IService.class, new ServiceImpl());
+        providerRegistry.register(IService.class, () -> new ServiceImpl());
         providerRegistry.registerModule(new ProviderModuleA());
         // You could use registerLazy to lazy-load your services
         providerRegistry.registerLazy(IServiceA.class, ServiceAImpl::new);
@@ -114,7 +114,7 @@ Example production RootModule:
 public class RootModule implements ProviderModule{
     @Override
     void provides(ProviderRegistry providerRegistry, Provider provider){
-        providerRegistry.register(IService.class, new ServiceImpl());
+        providerRegistry.register(IService.class, () -> new ServiceImpl());
     }
 }
 ```
@@ -126,7 +126,7 @@ public class TestRootModule extends RootModule{
     @Override
     void provides(ProviderRegistry providerRegistry, Provider provider){
         // register IService.class with test instance
-        providerRegistry.register(IService.class, new TestServiceImpl());
+        providerRegistry.register(IService.class, () -> new TestServiceImpl());
 
         providerRegistry.setSkipSameType(true); // enable
         // since skip is true, the IService.class from parent will not be registered again
