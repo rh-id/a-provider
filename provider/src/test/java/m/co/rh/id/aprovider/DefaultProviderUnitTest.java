@@ -22,9 +22,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import m.co.rh.id.aprovider.test.IServiceA;
@@ -485,13 +483,12 @@ public class DefaultProviderUnitTest {
                     () -> registerLazyService
             );
         };
-        ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(1, 1, 30, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
-        threadPoolExecutor.prestartAllCoreThreads();
+        ExecutorService executorService = Executors.newCachedThreadPool();
         Provider testProvider = new DefaultProvider(mockContext,
-                providerModule, threadPoolExecutor);
+                providerModule, executorService);
         testProvider.dispose();
-        threadPoolExecutor.shutdown();
-        threadPoolExecutor.awaitTermination(1, TimeUnit.SECONDS);
+        executorService.shutdown();
+        executorService.awaitTermination(1, TimeUnit.SECONDS);
 
         Mockito.verify(registerService, Mockito.times(1))
                 .dispose(eq(mockContext));
@@ -533,10 +530,9 @@ public class DefaultProviderUnitTest {
                     () -> registerLazyService
             );
         };
-        ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(1, 1, 30, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
-        threadPoolExecutor.prestartAllCoreThreads();
+        ExecutorService executorService = Executors.newCachedThreadPool();
         Provider testProvider = new DefaultProvider(mockContext,
-                providerModule, threadPoolExecutor);
+                providerModule, executorService);
         testProvider.get(DisposableRegisterService.class);
         testProvider.get(DisposableRegisterAsyncService.class);
         testProvider.get(DisposableRegisterLazyService.class);
@@ -573,8 +569,8 @@ public class DefaultProviderUnitTest {
                 .dispose(mockContext);
 
         testProvider.dispose();
-        threadPoolExecutor.awaitTermination(10, TimeUnit.MILLISECONDS);
-        threadPoolExecutor.shutdown();
+        executorService.awaitTermination(10, TimeUnit.MILLISECONDS);
+        executorService.shutdown();
 
         Mockito.verify(registerService, Mockito.times(1))
                 .dispose(eq(mockContext));

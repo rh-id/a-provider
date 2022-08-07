@@ -8,9 +8,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ExecutorService;
+
+import co.rh.id.lib.concurrent_utils.concurrent.executor.WeightedThreadPool;
 
 /**
  * Default implementation of the provider
@@ -18,47 +18,47 @@ import java.util.concurrent.TimeUnit;
 @SuppressWarnings({"rawtypes", "unchecked"})
 class DefaultProvider implements Provider, ProviderRegistry {
     private static final String TAG = "DefaultProvider";
-    private static ThreadPoolExecutor sThreadPoolExecutor;
+    private static ExecutorService sExecutorService;
 
-    private static synchronized ThreadPoolExecutor initThreadPool() {
-        if (sThreadPoolExecutor == null) {
-            sThreadPoolExecutor = new ThreadPoolExecutor(1, 1, 10,
-                    TimeUnit.SECONDS, new LinkedBlockingQueue<>());
-            sThreadPoolExecutor.allowCoreThreadTimeOut(true);
-            sThreadPoolExecutor.prestartAllCoreThreads();
+    private static synchronized ExecutorService initExecutorService() {
+        if (sExecutorService == null) {
+            WeightedThreadPool weightedThreadPool = new WeightedThreadPool();
+            weightedThreadPool.setMaxWeight(5);
+            weightedThreadPool.setThreadTimeoutMillis(10_000);
+            sExecutorService = weightedThreadPool;
         }
-        return sThreadPoolExecutor;
+        return sExecutorService;
     }
 
     private Context mContext;
     private Map<Class, Object> mObjectMap;
     private List<ProviderModule> mModuleList;
     private List<LazyFutureProviderRegister> mAsyncRegisterList;
-    private ThreadPoolExecutor mThreadPoolExecutor;
+    private ExecutorService mExecutorService;
     private ProviderModule mRootModule;
     private boolean mIsDisposed;
 
     private boolean skipSameType;
 
     DefaultProvider(Context context, ProviderModule rootModule) {
-        this(context, rootModule, initThreadPool(), true);
+        this(context, rootModule, initExecutorService(), true);
     }
 
     DefaultProvider(Context context, ProviderModule rootModule, boolean autoStart) {
-        this(context, rootModule, initThreadPool(), autoStart);
+        this(context, rootModule, initExecutorService(), autoStart);
     }
 
-    DefaultProvider(Context context, ProviderModule rootModule, ThreadPoolExecutor threadPoolExecutor) {
-        this(context, rootModule, threadPoolExecutor, true);
+    DefaultProvider(Context context, ProviderModule rootModule, ExecutorService executorService) {
+        this(context, rootModule, executorService, true);
     }
 
-    DefaultProvider(Context context, ProviderModule rootModule, ThreadPoolExecutor threadPoolExecutor, boolean autoStart) {
+    DefaultProvider(Context context, ProviderModule rootModule, ExecutorService executorService, boolean autoStart) {
         mContext = context;
         mObjectMap = new ConcurrentHashMap<>();
         mObjectMap.put(ProviderRegistry.class, this);
         mModuleList = Collections.synchronizedList(new ArrayList<>());
         mAsyncRegisterList = Collections.synchronizedList(new ArrayList<>());
-        mThreadPoolExecutor = threadPoolExecutor;
+        mExecutorService = executorService;
         mRootModule = rootModule;
         if (autoStart) {
             start();
@@ -141,7 +141,7 @@ class DefaultProvider implements Provider, ProviderRegistry {
         for (Map.Entry<Class, Object> entry : mObjectMap.entrySet()) {
             Object object = entry.getValue();
             if (object instanceof ProviderDisposable) {
-                mThreadPoolExecutor.execute(() ->
+                mExecutorService.execute(() ->
                         ((ProviderDisposable) object).dispose(disposeContext));
             }
         }
@@ -149,7 +149,7 @@ class DefaultProvider implements Provider, ProviderRegistry {
         mObjectMap = null;
         mAsyncRegisterList.clear();
         mAsyncRegisterList = null;
-        mThreadPoolExecutor = null;
+        mExecutorService = null;
         mRootModule = null;
         mContext = null;
     }
@@ -174,12 +174,12 @@ class DefaultProvider implements Provider, ProviderRegistry {
 
     @Override
     public <I> void registerLazy(Class<I> clazz, ProviderValue<I> providerValue) {
-        register(new LazySingletonProviderRegister<>(clazz, providerValue, mThreadPoolExecutor));
+        register(new LazySingletonProviderRegister<>(clazz, providerValue));
     }
 
     @Override
     public <I> void registerAsync(Class<I> clazz, ProviderValue<I> providerValue) {
-        LazyFutureProviderRegister providerRegister = new LazyFutureProviderRegister(clazz, providerValue, mThreadPoolExecutor);
+        LazyFutureProviderRegister providerRegister = new LazyFutureProviderRegister(clazz, providerValue, mExecutorService);
         boolean registered = register(providerRegister);
         if (registered) {
             mAsyncRegisterList.add(providerRegister);
@@ -188,12 +188,12 @@ class DefaultProvider implements Provider, ProviderRegistry {
 
     @Override
     public <I> void registerFactory(Class<I> clazz, ProviderValue<I> providerValue) {
-        register(new FactoryProviderRegister<>(clazz, providerValue, mContext, mThreadPoolExecutor));
+        register(new FactoryProviderRegister<>(clazz, providerValue, mContext));
     }
 
     @Override
     public <I> void registerPool(Class<I> clazz, ProviderValue<I> providerValue) {
-        register(new PoolProviderRegister<>(clazz, providerValue, mThreadPoolExecutor));
+        register(new PoolProviderRegister<>(clazz, providerValue, mExecutorService));
     }
 
     private <I> I exactGet(Class<I> clazz) {

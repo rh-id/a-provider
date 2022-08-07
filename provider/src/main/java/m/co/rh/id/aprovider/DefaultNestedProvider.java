@@ -3,7 +3,7 @@ package m.co.rh.id.aprovider;
 import android.content.Context;
 import android.util.Log;
 
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.ExecutorService;
 
 /**
  * Nested provider implementation
@@ -21,8 +21,8 @@ class DefaultNestedProvider extends DefaultProvider {
         start();
     }
 
-    DefaultNestedProvider(String name, Provider parentProvider, Context context, ProviderModule rootModule, ThreadPoolExecutor threadPoolExecutor) {
-        super(context, rootModule, threadPoolExecutor, false);
+    DefaultNestedProvider(String name, Provider parentProvider, Context context, ProviderModule rootModule, ExecutorService executorService) {
+        super(context, rootModule, executorService, false);
         mName = name;
         mParentProvider = parentProvider;
         start();
