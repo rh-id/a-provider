@@ -131,7 +131,7 @@ public class TestRootModule extends RootModule{
         providerRegistry.setSkipSameType(true); // enable
         // since skip is true, the IService.class from parent will not be registered again
         super.provides(providerRegistry, provider); 
-        providerRegistry.setSkipSameType(true); // disable skip after done
+        providerRegistry.setSkipSameType(false); // disable skip after done
     }
 }
 ```
