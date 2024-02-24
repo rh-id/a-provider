@@ -22,9 +22,12 @@ import org.mockito.junit.MockitoJUnitRunner;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import co.rh.id.lib.concurrent_utils.concurrent.executor.WeightedThreadPool;
 import m.co.rh.id.aprovider.test.IServiceA;
 import m.co.rh.id.aprovider.test.IServiceA1;
 import m.co.rh.id.aprovider.test.IServiceB;
@@ -173,6 +176,22 @@ public class DefaultNestedProviderUnitTest {
                 });
     }
 
+    @Test
+    public void singleton_registerWithSameParentClass_returnFirstRegistered() {
+        WeightedThreadPool executorService1 = new WeightedThreadPool();
+        ScheduledExecutorService executorService2 = Executors.newSingleThreadScheduledExecutor();
+        ThreadPoolExecutor executorService3 = new ThreadPoolExecutor(1,1,1,TimeUnit.SECONDS, new LinkedBlockingQueue<>());
+        Provider p = Provider.createProvider(mockContext, (providerRegistry, provider) -> {
+            providerRegistry.register(WeightedThreadPool.class, () -> executorService1);
+            providerRegistry.register(ScheduledExecutorService.class, () -> executorService2);
+            providerRegistry.register(ThreadPoolExecutor.class, () -> executorService3);
+        });
+
+        ExecutorService result = p.get(ExecutorService.class);
+        assertTrue(result instanceof ExecutorService);
+        assertTrue(result instanceof WeightedThreadPool);
+        assertSame(executorService1, result);
+    }
     @Test
     public void module_registrationAndGet() {
         Provider testProvider = Provider.createNestedProvider("test",

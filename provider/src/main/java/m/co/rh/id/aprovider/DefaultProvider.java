@@ -5,9 +5,9 @@ import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
 import co.rh.id.lib.concurrent_utils.concurrent.executor.WeightedThreadPool;
@@ -31,7 +31,7 @@ class DefaultProvider implements Provider, ProviderRegistry {
     }
 
     private Context mContext;
-    private Map<Class, Object> mObjectMap;
+    private Set<ProviderRegister> mRegistry;
     private List<ProviderModule> mModuleList;
     private List<LazyFutureProviderRegister> mAsyncRegisterList;
     private ExecutorService mExecutorService;
@@ -54,8 +54,8 @@ class DefaultProvider implements Provider, ProviderRegistry {
 
     DefaultProvider(Context context, ProviderModule rootModule, ExecutorService executorService, boolean autoStart) {
         mContext = context;
-        mObjectMap = new ConcurrentHashMap<>();
-        mObjectMap.put(ProviderRegistry.class, this);
+        mRegistry = new LinkedHashSet<>();
+        mRegistry.add(new SingletonProviderRegister(ProviderRegistry.class, () -> this));
         mModuleList = Collections.synchronizedList(new ArrayList<>());
         mAsyncRegisterList = Collections.synchronizedList(new ArrayList<>());
         mExecutorService = executorService;
@@ -65,17 +65,34 @@ class DefaultProvider implements Provider, ProviderRegistry {
         }
     }
 
+    private Object getValue(Class clazz) {
+        Object val = null;
+        for (ProviderRegister providerRegister : mRegistry) {
+            Class type = providerRegister.getType();
+            if (type.getName().equals(clazz.getName())) {
+                val = providerRegister.get();
+                break;
+            }
+        }
+        return val;
+    }
+
     @Override
     public <I> I get(Class<I> clazz) {
-        Object result = mObjectMap.get(clazz);
+        Object result = getValue(clazz);
         if (result != null) {
             return processObject(result);
         }
-        for (Map.Entry<Class, Object> entry : mObjectMap.entrySet()) {
-            if (clazz.isAssignableFrom(entry.getKey())) {
-                return processObject(entry.getValue());
-            } else if (clazz.isInstance(entry.getValue())) {
-                return processObject(entry.getValue());
+        for (ProviderRegister providerRegister : mRegistry) {
+            if (clazz.isAssignableFrom(providerRegister.getType())) {
+                return processObject(providerRegister.get());
+            } else if (
+                    (!(providerRegister instanceof LazyFutureProviderRegister) &&
+                            !(providerRegister instanceof LazySingletonProviderRegister)
+                    )
+                            &&
+                            clazz.isInstance(providerRegister.get())) {
+                return processObject(providerRegister.get());
             }
         }
         throw new ProviderNullPointerException(clazz.getName() + " not found");
@@ -96,20 +113,22 @@ class DefaultProvider implements Provider, ProviderRegistry {
     @Override
     public <I> ProviderValue<I> lazyGet(Class<I> clazz) {
         // check existence of the object without processing ProviderRegister
-        if (!mObjectMap.containsKey(clazz)) {
-            boolean classFound = false;
-            for (Map.Entry<Class, Object> entry : mObjectMap.entrySet()) {
-                if (clazz.isAssignableFrom(entry.getKey())) {
-                    classFound = true;
-                    break;
-                } else if (clazz.isInstance(entry.getValue())) {
-                    classFound = true;
-                    break;
-                }
+        boolean classFound = false;
+        for (ProviderRegister providerRegister : mRegistry) {
+            Class type = providerRegister.getType();
+            if (clazz.getName().equals(type.getName())) {
+                classFound = true;
+                break;
+            } else if (clazz.isAssignableFrom(type)) {
+                classFound = true;
+                break;
+            } else if (clazz.isInstance(providerRegister.get())) {
+                classFound = true;
+                break;
             }
-            if (!classFound) {
-                throw new ProviderNullPointerException(clazz.getName() + " not found");
-            }
+        }
+        if (!classFound) {
+            throw new ProviderNullPointerException(clazz.getName() + " not found");
         }
         return new CachedProviderValue<>(() -> get(clazz));
     }
@@ -138,15 +157,14 @@ class DefaultProvider implements Provider, ProviderRegistry {
             mModuleList = null;
         }
         final Context disposeContext = mContext;
-        for (Map.Entry<Class, Object> entry : mObjectMap.entrySet()) {
-            Object object = entry.getValue();
-            if (object instanceof ProviderDisposable) {
+        for (ProviderRegister entry : mRegistry) {
+            if (entry instanceof ProviderDisposable) {
                 mExecutorService.execute(() ->
-                        ((ProviderDisposable) object).dispose(disposeContext));
+                        entry.dispose(disposeContext));
             }
         }
-        mObjectMap.clear();
-        mObjectMap = null;
+        mRegistry.clear();
+        mRegistry = null;
         mAsyncRegisterList.clear();
         mAsyncRegisterList = null;
         mExecutorService = null;
@@ -169,18 +187,20 @@ class DefaultProvider implements Provider, ProviderRegistry {
     @Override
     public <I> void register(Class<I> clazz, ProviderValue<I> providerValue) {
         checkDisposed();
-        putValue(clazz, new SingletonProviderRegister<>(clazz, providerValue));
+        putValue(new SingletonProviderRegister<>(clazz, providerValue));
     }
 
     @Override
     public <I> void registerLazy(Class<I> clazz, ProviderValue<I> providerValue) {
-        register(new LazySingletonProviderRegister<>(clazz, providerValue));
+        checkDisposed();
+        putValue(new LazySingletonProviderRegister<>(clazz, providerValue));
     }
 
     @Override
     public <I> void registerAsync(Class<I> clazz, ProviderValue<I> providerValue) {
+        checkDisposed();
         LazyFutureProviderRegister providerRegister = new LazyFutureProviderRegister(clazz, providerValue, mExecutorService);
-        boolean registered = register(providerRegister);
+        boolean registered = putValue(providerRegister);
         if (registered) {
             mAsyncRegisterList.add(providerRegister);
         }
@@ -188,31 +208,20 @@ class DefaultProvider implements Provider, ProviderRegistry {
 
     @Override
     public <I> void registerFactory(Class<I> clazz, ProviderValue<I> providerValue) {
-        register(new FactoryProviderRegister<>(clazz, providerValue, mContext));
+        checkDisposed();
+        putValue(new FactoryProviderRegister<>(clazz, providerValue, mContext));
     }
 
     @Override
     public <I> void registerPool(Class<I> clazz, ProviderValue<I> providerValue) {
-        register(new PoolProviderRegister<>(clazz, providerValue, mExecutorService));
-    }
-
-    private <I> I exactGet(Class<I> clazz) {
-        Object result = mObjectMap.get(clazz);
-        if (result != null) {
-            return processObject(result);
-        }
-        throw new ProviderNullPointerException(clazz.getName() + " not found");
+        checkDisposed();
+        putValue(new PoolProviderRegister<>(clazz, providerValue, mExecutorService));
     }
 
     private synchronized void checkDisposed() {
         if (mIsDisposed) {
             throw new IllegalStateException("This provider was disposed, please create new instance");
         }
-    }
-
-    private <I> boolean register(ProviderRegister<I> providerRegister) {
-        checkDisposed();
-        return putValue(providerRegister.getType(), providerRegister);
     }
 
     private <I> I processObject(Object result) {
@@ -222,19 +231,14 @@ class DefaultProvider implements Provider, ProviderRegistry {
         return (I) result;
     }
 
-    private <I> boolean putValue(Class<I> clazz, ProviderRegister<I> implementation) {
-        I tryGetResult = null;
-        try {
-            tryGetResult = exactGet(clazz);
-        } catch (ProviderNullPointerException e) {
-            // leave blank
+    private <I> boolean putValue(ProviderRegister<I> implementation) {
+        Class clazz = implementation.getType();
+        boolean added;
+        if (implementation instanceof SingletonProviderRegister) {
+            implementation.get();
         }
-        if (tryGetResult == null) {
-            if (implementation instanceof SingletonProviderRegister) {
-                mObjectMap.put(clazz, implementation.get());
-            } else {
-                mObjectMap.put(clazz, implementation);
-            }
+        added = mRegistry.add(implementation);
+        if (added) {
             return true;
         } else {
             if (skipSameType) {
