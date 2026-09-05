@@ -29,6 +29,8 @@ dependencies {
 }
 ```
 
+This library requires minSdk 21 (Android 5.0).
+
 Then you could proceed writing code,
 First create root module as a root of the provider to provide services.
 
@@ -138,6 +140,12 @@ public class TestRootModule extends RootModule{
 
 The configuration `providerRegistry.setSkipSameType(true);` can be useful on some circumstances such
 as multiple android app flavors or configuration
+
+## Minification & Obfuscation (R8)
+
+If you decide to enable minify and obfuscation (R8) in your app, **no manual ProGuard rules are required**. The published AAR bundles `consumerProguardFiles` (see `provider/consumer-rules.pro`) which is intentionally empty: the library performs no runtime reflection — services are registered and looked up through `Class` literals (`Class.getName()` comparison, `isAssignableFrom`, `isInstance`), which R8 rewrites consistently under shrinking and obfuscation. One caveat: do not enable `minifyEnabled true` on the library module itself — with no entry points R8 strips the entire public API, producing an empty classes.jar (verified); keep the library's release `minifyEnabled false` (the shipped default) and let consumer apps do the shrinking.
+
+This is verified automatically by the `:r8-smoke` module: a harness app that consumes the library exactly like a real consumer, builds MINIFIED (`minifyEnabled true`), and runs instrumented tests against that minified build. Its `verifyR8Mapping` Gradle task parses the R8 `mapping.txt` on every release build and fails the build if obfuscation is silently disabled/weakened or if any `m.co.rh.id.aprovider.*` class stays identity-named.
 
 ## Example Projects
 

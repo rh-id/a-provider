@@ -1,0 +1,275 @@
+plugins {
+    // version omitted: AGP is already on the build classpath via the root build.gradle
+    // (com.android.tools.build:gradle:8.2.0 buildscript classpath) and
+    // com.android.application ships in the same artifact.
+    id 'com.android.application'
+}
+
+android {
+    namespace 'm.co.rh.id.aprovider.r8smoke'
+    compileSdk 33
+
+    defaultConfig {
+        applicationId 'm.co.rh.id.aprovider.r8smoke'
+        minSdk 21
+        targetSdk 33
+        versionCode 1
+        versionName '1.0'
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+    }
+
+    // Instrumented tests must run against the MINIFIED release app - that is the entire
+    // purpose of this module (consumer-side guard for the library consumer-rules.pro).
+    testBuildType 'release'
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources false
+            signingConfig signingConfigs.debug
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            testProguardFiles file('test-rules.pro')
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    // The library under test, consumed exactly like a real consumer would.
+    // NOTE: deliberately NO appcompat and no other main-scope libraries - plain
+    // android.app.Activity/Activity/Application plus a framework theme keep the
+    // dependency tree as small as possible, so R8's obfuscation/shrinking behavior
+    // is cleanly attributable to the provider library alone.
+    implementation project(':provider')
+
+    androidTestImplementation 'androidx.test:runner:1.5.2'
+    androidTestImplementation 'androidx.test:rules:1.5.0'
+    androidTestImplementation 'androidx.test:core:1.5.0'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+    // NOTE: AGP 8.2 DOES minify the test APK (see
+    // build/outputs/mapping/releaseAndroidTest/mapping.txt). Unlike the
+    // a-navigator harness, this app APK has NO app-scope kotlin/tracing (no
+    // appcompat), so nothing is deduped OUT of the test APK: it carries its
+    // own kotlin-stdlib (pulled transitively by androidx.test) and is
+    // self-contained - no navigator-style identity keeps are needed in
+    // proguard-rules.pro.
+}
+
+// ---------------------------------------------------------------------------
+// Consumer-side obfuscation/shrink guard.
+//
+// a-provider ships an INTENTIONALLY EMPTY consumer-rules.pro: the library
+// performs no runtime reflection (all service lookups are Class-literal,
+// Class.isAssignableFrom/isInstance and Class.getName comparisons, which R8
+// handles correctly), so it must survive shrinking/obfuscation without any
+// keep rules - exactly like in a real consumer app. This task reads the R8
+// mapping produced for this harness's minified release build and proves:
+//   1. obfuscation is actually ACTIVE - a rules regression that silently
+//      disables renaming (e.g. a stray -dontobfuscate) must fail the build;
+//   2. the library is NOT blanket-kept - every listed provider class must
+//      appear in the mapping and must NOT be identity-named (renamed, or
+//      removed by class merging where the app never needs the class alone).
+//      A rename there would only happen if somebody added a blanket
+//      "-keep class m.co.rh.id.aprovider.**" style rule, defeating the
+//      whole point of shipping no consumer rules.
+//   3. SmokeResult stays IDENTITY-named (the app's proguard-rules.pro keeps
+//      it for the separately-minified test APK to read).
+// It is wired below to always run after the release minification, so the
+// shipped rules are verified on every release build (and thus on CI).
+// ---------------------------------------------------------------------------
+tasks.register('verifyR8Mapping', DefaultTask) {
+    group = 'verification'
+    description = 'Verifies the release R8 mapping: obfuscation is active, the provider ' +
+            'library is NOT blanket-kept (no identity-named classes) and SmokeResult ' +
+            'stays identity-named for the test APK.'
+
+    // Deliberately no declared inputs/outputs: this task must re-execute on
+    // every minifyReleaseWithR8 run. Gradle finalizers run whenever the
+    // finalized task executes (even UP-TO-DATE), but a task WITH outputs could
+    // itself be skipped as UP-TO-DATE - keep it output-free so it never is.
+
+    // The mapping R8 writes for the minified release APK.
+    def mappingFile = layout.buildDirectory.file('outputs/mapping/release/mapping.txt')
+
+    // provider classes that must be OBFUSCATED (mapped to something else).
+    // Each must appear in mapping.txt and must NOT keep its original name:
+    // identity-naming here means a blanket keep of the library sneaked into
+    // the consumer rules. Classes merged away by R8 still receive a mapping
+    // entry (obfuscated name "R8$$REMOVED$$CLASS$$n"), so "appear in the
+    // mapping" includes merged-away classes - only complete ABSENCE from the
+    // mapping fails. DefaultProvider / DefaultNestedProvider are
+    // package-private internals and MAY additionally be removed outright by
+    // R8 class merging - that is still shrinking working as intended; only
+    // identity-naming is a failure.
+    def mustBeObfuscated = [
+            // public API surface the harness app references directly
+            'm.co.rh.id.aprovider.Provider',
+            'm.co.rh.id.aprovider.ProviderRegistry',
+            'm.co.rh.id.aprovider.ProviderModule',
+            'm.co.rh.id.aprovider.ProviderValue',
+            'm.co.rh.id.aprovider.ProviderDisposable',
+            // package-private implementation details
+            'm.co.rh.id.aprovider.DefaultProvider',
+            'm.co.rh.id.aprovider.DefaultNestedProvider',
+    ]
+
+    // The public API entries the harness app actually instantiates/calls
+    // through must also never be removed entirely by class merging.
+    // NOTE (observed in mapping.txt across builds, AGP 8.2.0 / R8 8.2): the
+    // Provider INTERFACE has been observed BOTH merge-removed by R8
+    // ("m.co.rh.id.aprovider.Provider -> R8$$REMOVED$$CLASS$$1:") in some
+    // builds AND simply renamed in others (e.g. "-> c.m:") - its only
+    // implementations are DefaultProvider/DefaultNestedProvider, so class
+    // merging is free to collapse it or not. Both outcomes are acceptable:
+    // R8 remaps every Provider-typed use whole-program, so behavior is
+    // preserved either way, which is exactly the shrinking a real consumer
+    // app gets. The guards therefore only require Provider to be PRESENT in
+    // the mapping and NOT identity-named; it must NOT be listed here, and
+    // only the types that must survive as distinct dispatch targets are
+    // listed below.
+    def mustNotBeRemoved = [
+            'm.co.rh.id.aprovider.ProviderRegistry',
+            'm.co.rh.id.aprovider.ProviderModule',
+            'm.co.rh.id.aprovider.ProviderValue',
+            'm.co.rh.id.aprovider.ProviderDisposable',
+    ]
+
+    // Kept BY NAME by this app's proguard-rules.pro; must stay identity-named.
+    def keptResultHolder = 'm.co.rh.id.aprovider.r8smoke.SmokeResult'
+
+    // Empirical baseline (observed on AGP 8.2.0): the harness app pulls in the
+    // provider library and its concurrent-utils dependency only (deliberately
+    // no appcompat/androidx tree), so the whole minified APK is tiny - across
+    // builds mapping.txt has shown 46-52 class lines, of which 40-49 were
+    // truly renamed and 0-3 were removed by class merging (which classes R8
+    // merges varies between builds). The floor below is ~50% of the lowest
+    // observed renamed count; it exists purely to fail loudly if obfuscation
+    // is silently disabled (which would drop the count to ~0).
+    def minRenamedClassLines = 20
+
+    doLast {
+        File file = mappingFile.get().asFile
+        if (!file.exists() || file.length() == 0) {
+            throw new GradleException(
+                    "R8 mapping file is missing or empty: ${file}\n" +
+                    'Build the minified release APK first (:r8-smoke:assembleRelease).')
+        }
+
+        // Class mapping lines start at column 0: "original -> obfuscated:".
+        // Member lines are indented (4 spaces) and header comments start with
+        // '#'; the anchored regex below matches class lines only.
+        def classLine = ~/^(\S+) -> (\S+):$/
+        int totalClassLines = 0
+        int renamedClassLines = 0
+        int removedClassLines = 0
+        def mappingByName = [:]
+
+        file.eachLine { line ->
+            def matcher = classLine.matcher(line)
+            if (matcher.matches()) {
+                String original = matcher.group(1)
+                String obfuscated = matcher.group(2)
+                totalClassLines++
+                mappingByName[original] = obfuscated
+                if (obfuscated.startsWith('R8$$REMOVED$$CLASS$$')) {
+                    // Class merged away by R8 - recorded in the mapping even with
+                    // obfuscation disabled, so it is NOT evidence of renaming.
+                    removedClassLines++
+                } else if (original != obfuscated) {
+                    renamedClassLines++
+                }
+            }
+        }
+
+        // Guard 1: obfuscation is active (merging removals counted separately
+        // above - they occur even under -dontobfuscate).
+        if (renamedClassLines < minRenamedClassLines) {
+            throw new GradleException(
+                    "R8 obfuscation appears disabled or weakened: only ${renamedClassLines} " +
+                    "of ${totalClassLines} class lines in the mapping were truly renamed " +
+                    "(${removedClassLines} are class-merging removals, not renames; " +
+                    "expected at least ${minRenamedClassLines}). " +
+                    'Check for -dontobfuscate or an over-broad keep that renames nothing.')
+        }
+
+        // Guard 2: the provider library is NOT blanket-kept - the empty
+        // consumer-rules.pro must keep every listed class renameable/removable.
+        List<String> broken = []
+        mustBeObfuscated.each { String name ->
+            def mapped = mappingByName[name]
+            if (mapped == null) {
+                broken << "${name} is MISSING from the mapping (shrunk away entirely?)"
+            } else if (mapped == name) {
+                broken << "${name} stayed IDENTITY-named (blanket keep regression in the consumer rules?)"
+            }
+        }
+        mustNotBeRemoved.each { String name ->
+            def mapped = mappingByName[name]
+            if (mapped != null && mapped.startsWith('R8$$REMOVED$$CLASS$$')) {
+                broken << "${name} was REMOVED by class merging but is public API the app calls"
+            }
+        }
+
+        // Guard 2b: sweep the WHOLE mapping - NO class whose original name
+        // lives in the library's package may stay identity-named, including
+        // classes not individually listed above. This closes the partial-keep
+        // loophole where a stray rule like
+        // "-keep class m.co.rh.id.aprovider.SingletonProviderRegister {*;}"
+        // would un-obfuscate a class none of the listed checks cover.
+        // (The harness's own m.co.rh.id.aprovider.r8smoke.** package is
+        // excluded: SmokeResult is deliberately kept identity-named for the
+        // test APK, and the manifest entry points MainActivity and
+        // SmokeApplication are kept identity-named by AGP's generated rules.)
+        def identityNamedLibraryClasses = mappingByName
+                .findAll { name, mapped ->
+                    name.startsWith('m.co.rh.id.aprovider.') &&
+                            !name.startsWith('m.co.rh.id.aprovider.r8smoke.') &&
+                            mapped == name
+                }
+                .keySet()
+                .sort()
+        if (!identityNamedLibraryClasses.isEmpty()) {
+            broken << 'library classes stayed IDENTITY-named (partial blanket-keep ' +
+                    "regression in the consumer rules): ${identityNamedLibraryClasses}"
+        }
+
+        // Guard 3: the kept result holder stays identity-named for the test APK.
+        def smokeResult = mappingByName[keptResultHolder]
+        if (smokeResult == null) {
+            broken << "${keptResultHolder} is MISSING from the mapping " +
+                    '(the proguard-rules.pro keep regressed - the test APK would crash)'
+        } else if (smokeResult != keptResultHolder) {
+            broken << "${keptResultHolder} was renamed to ${smokeResult} " +
+                    '(the proguard-rules.pro keep regressed - the test APK would crash)'
+        }
+
+        if (!broken.isEmpty()) {
+            throw new GradleException(
+                    'a-provider consumer shrink/obfuscation regression - the provider ' +
+                    'library must be fully shrunk and obfuscated (it performs no ' +
+                    "reflection), with only SmokeResult kept:\n  - " +
+                    broken.join('\n  - '))
+        }
+
+        logger.lifecycle('verifyR8Mapping: OK - obfuscation active ' +
+                "(${renamedClassLines}/${totalClassLines} class lines truly renamed, " +
+                "${removedClassLines} removed by class merging); no provider class is " +
+                'identity-named and SmokeResult stays identity-named.')
+    }
+}
+
+// Always re-verify whenever the release minification runs - Gradle finalizers
+// execute whenever the finalized task runs, including UP-TO-DATE executions.
+afterEvaluate {
+    // tasks.named (rather than tasks.matching) so a future AGP rename of the
+    // minification task fails the configuration loudly instead of silently
+    // leaving the verification guard above unwired.
+    tasks.named('minifyReleaseWithR8') {
+        finalizedBy tasks.named('verifyR8Mapping')
+    }
+}

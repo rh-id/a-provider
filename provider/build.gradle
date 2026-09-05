@@ -7,9 +7,13 @@ android {
     compileSdk 33
 
     defaultConfig {
-        minSdk 9
+        minSdk 21 // bumped from 9: all known consumers are 21+; library internally uses java.util.Objects (API 19+)
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        // Intentionally empty (no reflection in this library) - merged into
+        // consumer apps so they keep shrinking/obfuscating it normally.
+        consumerProguardFiles "consumer-rules.pro"
     }
     buildTypes {
         release {
